@@ -1,1 +1,412 @@
 @import "tailwindcss";
+
+:root {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 900px;
+}
+
+button {
+  font: inherit;
+}
+
+.library-page {
+  min-height: 100svh;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #f1f5f9 100%);
+}
+
+.library-canvas {
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  min-height: max(100svh, clamp(650px, 65vw, 936px));
+  margin: 0 auto;
+}
+
+.sidebar {
+  position: absolute;
+  top: clamp(50px, 5vw, 72px);
+  left: 5.2%;
+  width: clamp(94px, 9.2vw, 133px);
+  color: #6366f1;
+}
+
+.profile-mark {
+  width: 100%;
+  aspect-ratio: 1 / 1.04;
+  border: clamp(2px, 0.16vw, 3px) solid #c7d2fe;
+  border-radius: clamp(10px, 0.78vw, 12px);
+  padding: 8%;
+  background: rgb(255 255 255 / 80%);
+  box-shadow: 0 10px 25px rgb(49 46 129 / 8%);
+}
+
+.profile-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar-placeholders {
+  display: grid;
+  gap: clamp(12px, 0.94vw, 14px);
+  margin-top: clamp(42px, 3.2vw, 46px);
+}
+
+.placeholder-row {
+  display: grid;
+  grid-template-columns: 1fr 0.72fr;
+  gap: 15%;
+}
+
+.placeholder-row span,
+.preview-heading,
+.preview-lines span {
+  display: block;
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.placeholder-row span {
+  height: clamp(10px, 0.94vw, 14px);
+}
+
+.launcher-panel {
+  position: absolute;
+  top: clamp(80px, 7.8vw, 112px);
+  left: 19.86%;
+  width: 57.64%;
+  aspect-ratio: 830 / 621;
+  border: 1px solid #e2e8f0;
+  border-radius: clamp(18px, 1.8vw, 26px);
+  padding: clamp(32px, 3.125vw, 45px) clamp(67px, 6.53vw, 94px) clamp(34px, 3.33vw, 48px);
+  background: rgb(255 255 255 / 80%);
+  box-shadow: 0 25px 55px rgb(49 46 129 / 10%);
+  backdrop-filter: blur(14px);
+}
+
+.launcher-panel h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: clamp(29px, 2.78vw, 40px);
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  letter-spacing: -0.035em;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  width: 100%;
+  aspect-ratio: 635 / 350;
+  margin-top: clamp(58px, 5.83vw, 84px);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: clamp(12px, 1.1vw, 16px);
+}
+
+.game-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
+  color: #334155;
+  font-size: clamp(11px, 0.97vw, 14px);
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
+  cursor: pointer;
+  border: 0;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.game-tile:nth-child(4n) {
+  border-right: 0;
+}
+
+.game-tile:nth-child(n + 5) {
+  border-bottom: 0;
+}
+
+.game-tile:hover {
+  color: #3730a3;
+  background: #eef2ff;
+}
+
+.game-tile:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid rgb(79 70 229 / 35%);
+  outline-offset: -3px;
+}
+
+.game-cover {
+  position: relative;
+  display: block;
+  width: 36%;
+  height: 48%;
+  border-radius: clamp(8px, 0.8vw, 12px);
+  background: #e0e7ff;
+}
+
+.platform-name {
+  display: block;
+  width: 90%;
+  margin-top: clamp(8px, 0.83vw, 12px);
+}
+
+.cover-dot {
+  position: absolute;
+  left: 50%;
+  width: clamp(12px, 1.45vw, 21px);
+  aspect-ratio: 1;
+  border: clamp(2px, 0.16vw, 3px) solid #4f46e5;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.cover-dot--top {
+  top: 9%;
+}
+
+.cover-dot--middle {
+  top: 42%;
+}
+
+.cover-dot--bottom {
+  bottom: 7%;
+}
+
+.import-area {
+  position: absolute;
+  top: clamp(114px, 11.1vw, 160px);
+  left: 81.25%;
+  width: 16.25%;
+}
+
+.import-button {
+  display: block;
+  width: 100%;
+  height: clamp(60px, 5.83vw, 84px);
+  border: 0;
+  border-radius: clamp(10px, 0.83vw, 12px);
+  background: #4f46e5;
+  color: #fff;
+  font-size: clamp(16px, 1.25vw, 18px);
+  font-weight: 700;
+  box-shadow: 0 10px 18px rgb(79 70 229 / 22%);
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.import-button:hover {
+  background: #4338ca;
+}
+
+.import-button:focus-visible {
+  outline: 3px solid rgb(79 70 229 / 35%);
+  outline-offset: 3px;
+}
+
+.import-preview {
+  display: grid;
+  justify-items: center;
+  gap: clamp(11px, 1.04vw, 15px);
+  margin-top: clamp(89px, 7.42vw, 107px);
+}
+
+.preview-heading {
+  width: 67%;
+  height: clamp(18px, 1.67vw, 24px);
+}
+
+.preview-lines {
+  display: grid;
+  gap: clamp(7px, 0.6vw, 9px);
+  width: 100%;
+  justify-items: center;
+}
+
+.preview-lines span {
+  width: 29%;
+  height: clamp(11px, 0.87vw, 13px);
+}
+
+.bottom-placeholders {
+  position: absolute;
+  right: 11.1%;
+  bottom: clamp(32px, 2.7vw, 39px);
+  left: 5.2%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bottom-action {
+  width: clamp(111px, 10.76vw, 155px);
+  height: clamp(23px, 2.22vw, 32px);
+  border: 1px solid #c7d2fe;
+  border-radius: clamp(7px, 0.62vw, 9px);
+  color: #475569;
+  font-size: clamp(11px, 0.9vw, 13px);
+  font-weight: 600;
+  background: rgb(255 255 255 / 80%);
+  box-shadow: 0 6px 14px rgb(49 46 129 / 8%);
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
+}
+
+.bottom-action:hover {
+  border-color: #a5b4fc;
+  color: #3730a3;
+  background: #eef2ff;
+}
+
+.bottom-action:focus-visible {
+  outline: 3px solid rgb(79 70 229 / 35%);
+  outline-offset: 3px;
+}
+
+.loading-panel,
+.recommendations-panel {
+  position: absolute;
+  left: 19.86%;
+  width: 57.64%;
+  border: 1px solid #e2e8f0;
+  border-radius: clamp(18px, 1.8vw, 26px);
+  background: rgb(255 255 255 / 80%);
+  box-shadow: 0 25px 55px rgb(49 46 129 / 10%);
+  backdrop-filter: blur(14px);
+  text-align: center;
+}
+
+.loading-panel {
+  top: clamp(145px, 14.3vw, 206px);
+  min-height: clamp(370px, 32.5vw, 468px);
+  padding: clamp(57px, 5vw, 72px) clamp(40px, 4vw, 58px);
+}
+
+.screen-kicker,
+.loading-copy,
+.completion-status {
+  margin: 0;
+  color: #475569;
+  font-size: clamp(20px, 1.67vw, 24px);
+}
+
+.loading-panel h1 {
+  margin: clamp(13px, 1.25vw, 18px) 0 0;
+  font-size: clamp(36px, 3.33vw, 48px);
+  color: #0f172a;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+}
+
+.loading-mark {
+  display: flex;
+  justify-content: center;
+  gap: clamp(15px, 1.25vw, 18px);
+  margin: clamp(58px, 5.28vw, 76px) 0 clamp(33px, 3.05vw, 44px);
+}
+
+.loading-mark span {
+  display: block;
+  width: clamp(19px, 1.67vw, 24px);
+  aspect-ratio: 1;
+  background: #c7d2fe;
+  border: 0;
+  border-radius: 50%;
+  animation: loading-pulse 0.9s ease-in-out infinite alternate;
+}
+
+.loading-mark span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-mark span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes loading-pulse {
+  to {
+    transform: translateY(-10%);
+    background: #4f46e5;
+  }
+}
+
+.recommendations-panel {
+  top: clamp(80px, 7.8vw, 112px);
+  min-height: clamp(540px, 48.6vw, 700px);
+  padding: clamp(37px, 3.75vw, 54px) clamp(44px, 4.45vw, 64px);
+}
+
+.completion-status {
+  color: #4f46e5;
+  font-weight: 700;
+}
+
+.recommendations-panel h1 {
+  margin: clamp(13px, 1.25vw, 18px) 0 clamp(38px, 3.47vw, 50px);
+  font-size: clamp(34px, 3.06vw, 44px);
+  color: #0f172a;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+}
+
+.recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(19px, 1.67vw, 24px);
+}
+
+.recommendation-grid span {
+  display: block;
+  aspect-ratio: 1.2 / 1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: clamp(12px, 1.1vw, 16px);
+}
+
+.return-library-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(42px, 3.47vw, 50px);
+  margin-top: clamp(30px, 2.78vw, 40px);
+  padding: 0 clamp(22px, 1.94vw, 28px);
+  border: 0;
+  border-radius: clamp(10px, 0.83vw, 12px);
+  color: #fff;
+  font-size: clamp(14px, 1.11vw, 16px);
+  font-weight: 700;
+  background: #4f46e5;
+  box-shadow: 0 10px 18px rgb(79 70 229 / 22%);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.return-library-button:hover {
+  background: #4338ca;
+}
+
+.return-library-button:focus-visible {
+  outline: 3px solid rgb(79 70 229 / 35%);
+  outline-offset: 3px;
+}
