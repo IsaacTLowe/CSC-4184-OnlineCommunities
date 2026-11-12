@@ -1,1 +1,340 @@
 @import "tailwindcss";
+
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #151515;
+  background: #dedede;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 900px;
+}
+
+button {
+  font: inherit;
+}
+
+.library-page {
+  min-height: 100svh;
+  overflow: hidden;
+  background: #dedede;
+}
+
+.library-canvas {
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  min-height: max(100svh, clamp(650px, 65vw, 936px));
+  margin: 0 auto;
+}
+
+.sidebar {
+  position: absolute;
+  top: clamp(50px, 5vw, 72px);
+  left: 5.2%;
+  width: clamp(94px, 9.2vw, 133px);
+  color: #a19b9b;
+}
+
+.profile-mark {
+  width: 100%;
+  aspect-ratio: 1 / 1.04;
+  border: clamp(2px, 0.16vw, 3px) solid currentColor;
+  border-radius: clamp(10px, 0.78vw, 12px);
+  padding: 8%;
+}
+
+.profile-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar-placeholders {
+  display: grid;
+  gap: clamp(12px, 0.94vw, 14px);
+  margin-top: clamp(42px, 3.2vw, 46px);
+}
+
+.placeholder-row {
+  display: grid;
+  grid-template-columns: 1fr 0.72fr;
+  gap: 15%;
+}
+
+.placeholder-row span,
+.bottom-placeholders span,
+.preview-heading,
+.preview-lines span {
+  display: block;
+  background: #c2b8b8;
+}
+
+.placeholder-row span {
+  height: clamp(10px, 0.94vw, 14px);
+}
+
+.launcher-panel {
+  position: absolute;
+  top: clamp(80px, 7.8vw, 112px);
+  left: 19.86%;
+  width: 57.64%;
+  aspect-ratio: 830 / 621;
+  border: clamp(2px, 0.16vw, 3px) solid #111;
+  padding: clamp(32px, 3.125vw, 45px) clamp(67px, 6.53vw, 94px) clamp(34px, 3.33vw, 48px);
+}
+
+.launcher-panel h1 {
+  margin: 0;
+  color: #111;
+  font-size: clamp(29px, 2.78vw, 40px);
+  font-weight: 400;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  width: 100%;
+  aspect-ratio: 635 / 350;
+  margin-top: clamp(58px, 5.83vw, 84px);
+  overflow: hidden;
+  border: clamp(2px, 0.16vw, 3px) solid #101010;
+}
+
+.game-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
+  color: #111;
+  font-size: clamp(11px, 0.97vw, 14px);
+  line-height: 1.1;
+  text-align: center;
+  cursor: pointer;
+  border: 0;
+  background: #b5b5b5;
+  border-right: clamp(2px, 0.16vw, 3px) solid #101010;
+  border-bottom: clamp(2px, 0.16vw, 3px) solid #101010;
+}
+
+.game-tile:nth-child(4n) {
+  border-right: 0;
+}
+
+.game-tile:nth-child(n + 5) {
+  border-bottom: 0;
+}
+
+.game-tile:hover {
+  background: #aaa;
+}
+
+.game-tile:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: clamp(2px, 0.2vw, 3px) solid #111;
+  outline-offset: -1px;
+}
+
+.game-cover {
+  position: relative;
+  display: block;
+  width: 36%;
+  height: 48%;
+  background: #dedede;
+}
+
+.platform-name {
+  display: block;
+  width: 90%;
+  margin-top: clamp(8px, 0.83vw, 12px);
+}
+
+.cover-dot {
+  position: absolute;
+  left: 50%;
+  width: clamp(12px, 1.45vw, 21px);
+  aspect-ratio: 1;
+  border: clamp(2px, 0.16vw, 3px) solid #111;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.cover-dot--top {
+  top: 9%;
+}
+
+.cover-dot--middle {
+  top: 42%;
+}
+
+.cover-dot--bottom {
+  bottom: 7%;
+}
+
+.import-area {
+  position: absolute;
+  top: clamp(114px, 11.1vw, 160px);
+  left: 81.25%;
+  width: 16.25%;
+}
+
+.import-button {
+  display: block;
+  width: 100%;
+  height: clamp(60px, 5.83vw, 84px);
+  border: 0;
+  border-radius: 0;
+  background: #aaa2a2;
+  color: #5c5656;
+  font-size: clamp(16px, 1.25vw, 18px);
+  font-weight: 700;
+}
+
+.import-preview {
+  display: grid;
+  justify-items: center;
+  gap: clamp(11px, 1.04vw, 15px);
+  margin-top: clamp(89px, 7.42vw, 107px);
+}
+
+.preview-heading {
+  width: 67%;
+  height: clamp(18px, 1.67vw, 24px);
+}
+
+.preview-lines {
+  display: grid;
+  gap: clamp(7px, 0.6vw, 9px);
+  width: 100%;
+  justify-items: center;
+}
+
+.preview-lines span {
+  width: 29%;
+  height: clamp(11px, 0.87vw, 13px);
+}
+
+.bottom-placeholders {
+  position: absolute;
+  right: 11.1%;
+  bottom: clamp(32px, 2.7vw, 39px);
+  left: 5.2%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bottom-placeholders span {
+  width: clamp(111px, 10.76vw, 155px);
+  height: clamp(23px, 2.22vw, 32px);
+}
+
+.bottom-placeholders span:nth-child(2) {
+  margin-right: 20%;
+}
+
+.loading-panel,
+.recommendations-panel {
+  position: absolute;
+  left: 19.86%;
+  width: 57.64%;
+  border: clamp(2px, 0.16vw, 3px) solid #111;
+  text-align: center;
+}
+
+.loading-panel {
+  top: clamp(145px, 14.3vw, 206px);
+  min-height: clamp(370px, 32.5vw, 468px);
+  padding: clamp(57px, 5vw, 72px) clamp(40px, 4vw, 58px);
+}
+
+.screen-kicker,
+.loading-copy,
+.completion-status {
+  margin: 0;
+  font-size: clamp(20px, 1.67vw, 24px);
+}
+
+.loading-panel h1 {
+  margin: clamp(13px, 1.25vw, 18px) 0 0;
+  font-size: clamp(36px, 3.33vw, 48px);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.loading-mark {
+  display: flex;
+  justify-content: center;
+  gap: clamp(15px, 1.25vw, 18px);
+  margin: clamp(58px, 5.28vw, 76px) 0 clamp(33px, 3.05vw, 44px);
+}
+
+.loading-mark span {
+  display: block;
+  width: clamp(19px, 1.67vw, 24px);
+  aspect-ratio: 1;
+  border: clamp(2px, 0.16vw, 3px) solid #111;
+  border-radius: 50%;
+  animation: loading-pulse 0.9s ease-in-out infinite alternate;
+}
+
+.loading-mark span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-mark span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes loading-pulse {
+  to {
+    transform: translateY(-10%);
+    background: #aaa2a2;
+  }
+}
+
+.recommendations-panel {
+  top: clamp(80px, 7.8vw, 112px);
+  min-height: clamp(540px, 48.6vw, 700px);
+  padding: clamp(37px, 3.75vw, 54px) clamp(44px, 4.45vw, 64px);
+}
+
+.completion-status {
+  font-weight: 700;
+}
+
+.recommendations-panel h1 {
+  margin: clamp(13px, 1.25vw, 18px) 0 clamp(38px, 3.47vw, 50px);
+  font-size: clamp(34px, 3.06vw, 44px);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(19px, 1.67vw, 24px);
+}
+
+.recommendation-grid span {
+  display: block;
+  aspect-ratio: 1.2 / 1;
+  background: #b5b5b5;
+  border: clamp(2px, 0.16vw, 3px) solid #111;
+}
+
+@media (max-width: 1080px) {
+  .bottom-placeholders span:nth-child(2) {
+    margin-right: 14%;
+  }
+}
