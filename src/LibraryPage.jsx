@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Navbar from './components/Navbar.jsx'
 
 const launchers = [
   { name: 'Steam', dot: 'top' },
@@ -28,15 +29,17 @@ export default function LibraryPage() {
   }
 
   if (screen === 'loading') {
-    return <LoadingScreen platform={selectedPlatform} />
+    return <><Navbar /><LoadingScreen platform={selectedPlatform} /></>
   }
 
   if (screen === 'recommendations') {
-    return <RecommendationsScreen onReturnToLibrary={() => setScreen('launchers')} />
+    return <><Navbar /><RecommendationsScreen onReturnToLibrary={() => setScreen('launchers')} /></>
   }
 
   return (
-    <main className="library-page" aria-label="Game library">
+    <>
+      <Navbar />
+      <main className="library-page" aria-label="Game library">
       <div className="library-canvas">
         <Sidebar />
 
@@ -72,7 +75,8 @@ export default function LibraryPage() {
 
         <BottomPlaceholders />
       </div>
-    </main>
+      </main>
+    </>
   )
 }
 
@@ -137,6 +141,7 @@ function Sidebar() {
         <div className="placeholder-row"><span /><span /></div>
         <div className="placeholder-row"><span /><span /></div>
       </div>
+
     </aside>
   )
 }
@@ -145,7 +150,7 @@ function BottomPlaceholders() {
   return (
     <nav className="bottom-placeholders" aria-label="Additional navigation">
       <button className="bottom-action" type="button">Preferences</button>
-      <button className="bottom-action" type="button" onClick={() => { window.location.href = '/contact' }}>Contact Us</button>
+      <button className="bottom-action" type="button">Contact Us</button>
     </nav>
   )
 }
