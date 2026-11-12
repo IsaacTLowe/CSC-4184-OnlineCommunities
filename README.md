@@ -31,3 +31,11 @@ The production files go to `dist/`. To preview the build locally:
 ```bash
 npm run preview
 ```
+
+## Contribution
+Angel - 
+Chinmay - 
+Fernando - 
+Jacob - 
+Patrick - 
+Isaac - Initial repo/project setup and contact page.
