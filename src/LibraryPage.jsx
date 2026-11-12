@@ -145,7 +145,7 @@ function BottomPlaceholders() {
   return (
     <nav className="bottom-placeholders" aria-label="Additional navigation">
       <button className="bottom-action" type="button">Preferences</button>
-      <button className="bottom-action" type="button">Contact Us</button>
+      <button className="bottom-action" type="button" onClick={() => { window.location.href = '/contact' }}>Contact Us</button>
     </nav>
   )
 }
