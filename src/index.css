@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  font-family: Arial, Helvetica, sans-serif;
-  color: #151515;
-  background: #dedede;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #0f172a;
+  background: #f8fafc;
 }
 
 * {
@@ -22,7 +22,7 @@ button {
 .library-page {
   min-height: 100svh;
   overflow: hidden;
-  background: #dedede;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #f1f5f9 100%);
 }
 
 .library-canvas {
@@ -38,15 +38,17 @@ button {
   top: clamp(50px, 5vw, 72px);
   left: 5.2%;
   width: clamp(94px, 9.2vw, 133px);
-  color: #a19b9b;
+  color: #6366f1;
 }
 
 .profile-mark {
   width: 100%;
   aspect-ratio: 1 / 1.04;
-  border: clamp(2px, 0.16vw, 3px) solid currentColor;
+  border: clamp(2px, 0.16vw, 3px) solid #c7d2fe;
   border-radius: clamp(10px, 0.78vw, 12px);
   padding: 8%;
+  background: rgb(255 255 255 / 80%);
+  box-shadow: 0 10px 25px rgb(49 46 129 / 8%);
 }
 
 .profile-mark svg {
@@ -68,11 +70,11 @@ button {
 }
 
 .placeholder-row span,
-.bottom-placeholders span,
 .preview-heading,
 .preview-lines span {
   display: block;
-  background: #c2b8b8;
+  background: #cbd5e1;
+  border-radius: 999px;
 }
 
 .placeholder-row span {
@@ -85,17 +87,22 @@ button {
   left: 19.86%;
   width: 57.64%;
   aspect-ratio: 830 / 621;
-  border: clamp(2px, 0.16vw, 3px) solid #111;
+  border: 1px solid #e2e8f0;
+  border-radius: clamp(18px, 1.8vw, 26px);
   padding: clamp(32px, 3.125vw, 45px) clamp(67px, 6.53vw, 94px) clamp(34px, 3.33vw, 48px);
+  background: rgb(255 255 255 / 80%);
+  box-shadow: 0 25px 55px rgb(49 46 129 / 10%);
+  backdrop-filter: blur(14px);
 }
 
 .launcher-panel h1 {
   margin: 0;
-  color: #111;
+  color: #0f172a;
   font-size: clamp(29px, 2.78vw, 40px);
-  font-weight: 400;
+  font-weight: 700;
   line-height: 1.1;
   text-align: center;
+  letter-spacing: -0.035em;
 }
 
 .game-grid {
@@ -106,7 +113,8 @@ button {
   aspect-ratio: 635 / 350;
   margin-top: clamp(58px, 5.83vw, 84px);
   overflow: hidden;
-  border: clamp(2px, 0.16vw, 3px) solid #101010;
+  border: 1px solid #e2e8f0;
+  border-radius: clamp(12px, 1.1vw, 16px);
 }
 
 .game-tile {
@@ -116,15 +124,17 @@ button {
   justify-content: center;
   min-width: 0;
   padding: 0;
-  color: #111;
+  color: #334155;
   font-size: clamp(11px, 0.97vw, 14px);
+  font-weight: 600;
   line-height: 1.1;
   text-align: center;
   cursor: pointer;
   border: 0;
-  background: #b5b5b5;
-  border-right: clamp(2px, 0.16vw, 3px) solid #101010;
-  border-bottom: clamp(2px, 0.16vw, 3px) solid #101010;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 
 .game-tile:nth-child(4n) {
@@ -136,14 +146,15 @@ button {
 }
 
 .game-tile:hover {
-  background: #aaa;
+  color: #3730a3;
+  background: #eef2ff;
 }
 
 .game-tile:focus-visible {
   position: relative;
   z-index: 1;
-  outline: clamp(2px, 0.2vw, 3px) solid #111;
-  outline-offset: -1px;
+  outline: 3px solid rgb(79 70 229 / 35%);
+  outline-offset: -3px;
 }
 
 .game-cover {
@@ -151,7 +162,8 @@ button {
   display: block;
   width: 36%;
   height: 48%;
-  background: #dedede;
+  border-radius: clamp(8px, 0.8vw, 12px);
+  background: #e0e7ff;
 }
 
 .platform-name {
@@ -165,7 +177,7 @@ button {
   left: 50%;
   width: clamp(12px, 1.45vw, 21px);
   aspect-ratio: 1;
-  border: clamp(2px, 0.16vw, 3px) solid #111;
+  border: clamp(2px, 0.16vw, 3px) solid #4f46e5;
   border-radius: 50%;
   transform: translateX(-50%);
 }
@@ -194,11 +206,22 @@ button {
   width: 100%;
   height: clamp(60px, 5.83vw, 84px);
   border: 0;
-  border-radius: 0;
-  background: #aaa2a2;
-  color: #5c5656;
+  border-radius: clamp(10px, 0.83vw, 12px);
+  background: #4f46e5;
+  color: #fff;
   font-size: clamp(16px, 1.25vw, 18px);
   font-weight: 700;
+  box-shadow: 0 10px 18px rgb(79 70 229 / 22%);
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.import-button:hover {
+  background: #4338ca;
+}
+
+.import-button:focus-visible {
+  outline: 3px solid rgb(79 70 229 / 35%);
+  outline-offset: 3px;
 }
 
 .import-preview {
@@ -234,13 +257,29 @@ button {
   justify-content: space-between;
 }
 
-.bottom-placeholders span {
+.bottom-action {
   width: clamp(111px, 10.76vw, 155px);
   height: clamp(23px, 2.22vw, 32px);
+  border: 1px solid #c7d2fe;
+  border-radius: clamp(7px, 0.62vw, 9px);
+  color: #475569;
+  font-size: clamp(11px, 0.9vw, 13px);
+  font-weight: 600;
+  background: rgb(255 255 255 / 80%);
+  box-shadow: 0 6px 14px rgb(49 46 129 / 8%);
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
 }
 
-.bottom-placeholders span:nth-child(2) {
-  margin-right: 20%;
+.bottom-action:hover {
+  border-color: #a5b4fc;
+  color: #3730a3;
+  background: #eef2ff;
+}
+
+.bottom-action:focus-visible {
+  outline: 3px solid rgb(79 70 229 / 35%);
+  outline-offset: 3px;
 }
 
 .loading-panel,
@@ -248,7 +287,11 @@ button {
   position: absolute;
   left: 19.86%;
   width: 57.64%;
-  border: clamp(2px, 0.16vw, 3px) solid #111;
+  border: 1px solid #e2e8f0;
+  border-radius: clamp(18px, 1.8vw, 26px);
+  background: rgb(255 255 255 / 80%);
+  box-shadow: 0 25px 55px rgb(49 46 129 / 10%);
+  backdrop-filter: blur(14px);
   text-align: center;
 }
 
@@ -262,14 +305,17 @@ button {
 .loading-copy,
 .completion-status {
   margin: 0;
+  color: #475569;
   font-size: clamp(20px, 1.67vw, 24px);
 }
 
 .loading-panel h1 {
   margin: clamp(13px, 1.25vw, 18px) 0 0;
   font-size: clamp(36px, 3.33vw, 48px);
-  font-weight: 400;
+  color: #0f172a;
+  font-weight: 700;
   line-height: 1.1;
+  letter-spacing: -0.035em;
 }
 
 .loading-mark {
@@ -283,7 +329,8 @@ button {
   display: block;
   width: clamp(19px, 1.67vw, 24px);
   aspect-ratio: 1;
-  border: clamp(2px, 0.16vw, 3px) solid #111;
+  background: #c7d2fe;
+  border: 0;
   border-radius: 50%;
   animation: loading-pulse 0.9s ease-in-out infinite alternate;
 }
@@ -299,7 +346,7 @@ button {
 @keyframes loading-pulse {
   to {
     transform: translateY(-10%);
-    background: #aaa2a2;
+    background: #4f46e5;
   }
 }
 
@@ -310,14 +357,17 @@ button {
 }
 
 .completion-status {
+  color: #4f46e5;
   font-weight: 700;
 }
 
 .recommendations-panel h1 {
   margin: clamp(13px, 1.25vw, 18px) 0 clamp(38px, 3.47vw, 50px);
   font-size: clamp(34px, 3.06vw, 44px);
-  font-weight: 400;
+  color: #0f172a;
+  font-weight: 700;
   line-height: 1.1;
+  letter-spacing: -0.035em;
 }
 
 .recommendation-grid {
@@ -329,12 +379,34 @@ button {
 .recommendation-grid span {
   display: block;
   aspect-ratio: 1.2 / 1;
-  background: #b5b5b5;
-  border: clamp(2px, 0.16vw, 3px) solid #111;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: clamp(12px, 1.1vw, 16px);
 }
 
-@media (max-width: 1080px) {
-  .bottom-placeholders span:nth-child(2) {
-    margin-right: 14%;
-  }
+.return-library-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(42px, 3.47vw, 50px);
+  margin-top: clamp(30px, 2.78vw, 40px);
+  padding: 0 clamp(22px, 1.94vw, 28px);
+  border: 0;
+  border-radius: clamp(10px, 0.83vw, 12px);
+  color: #fff;
+  font-size: clamp(14px, 1.11vw, 16px);
+  font-weight: 700;
+  background: #4f46e5;
+  box-shadow: 0 10px 18px rgb(79 70 229 / 22%);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.return-library-button:hover {
+  background: #4338ca;
+}
+
+.return-library-button:focus-visible {
+  outline: 3px solid rgb(79 70 229 / 35%);
+  outline-offset: 3px;
 }

@@ -32,7 +32,7 @@ export default function LibraryPage() {
   }
 
   if (screen === 'recommendations') {
-    return <RecommendationsScreen />
+    return <RecommendationsScreen onReturnToLibrary={() => setScreen('launchers')} />
   }
 
   return (
@@ -99,7 +99,7 @@ function LoadingScreen({ platform }) {
   )
 }
 
-function RecommendationsScreen() {
+function RecommendationsScreen({ onReturnToLibrary }) {
   return (
     <main className="library-page" aria-label="Game recommendations">
       <div className="library-canvas">
@@ -111,6 +111,9 @@ function RecommendationsScreen() {
           <div className="recommendation-grid" aria-label="Recommended games">
             {Array.from({ length: 6 }, (_, index) => <span key={index} />)}
           </div>
+          <button className="return-library-button" type="button" onClick={onReturnToLibrary}>
+            Back to Library
+          </button>
         </section>
 
         <BottomPlaceholders />
@@ -141,10 +144,8 @@ function Sidebar() {
 function BottomPlaceholders() {
   return (
     <nav className="bottom-placeholders" aria-label="Additional navigation">
-      <span />
-      <span />
-      <span />
-      <span />
+      <button className="bottom-action" type="button">Preferences</button>
+      <button className="bottom-action" type="button">Contact Us</button>
     </nav>
   )
 }
