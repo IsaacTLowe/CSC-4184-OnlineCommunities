@@ -106,7 +106,7 @@ export default function FrontPage() {
 
           <div className="flex flex-wrap justify-center gap-3 sm:gap-5">
             <a href="/library" className={secondaryButton}>Library</a>
-            <a href="/recommendations" className={secondaryButton}>Preferences</a>
+            <a href="/preferences" className={secondaryButton}>Preferences</a>
           </div>
         </footer>
       </div>

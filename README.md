@@ -33,9 +33,9 @@ npm run preview
 ```
 
 ## Contribution
-Angel - 
-Chinmay - 
-Fernando - 
-Jacob - 
-Patrick - 
+Angel - Fix a couple of bugs and update the color scheme 
+Chinmay - created the home page, adjust preferences page and the navbar
+Fernando - created the FrontPage and measure to link the front page to the HomePage and Library Page
+Jacob - made the import library branch page
+Patrick - Fixed buttons that didn't lead anywhere, added an under constructions page 
 Isaac - Initial repo/project setup and contact page.
