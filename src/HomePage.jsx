@@ -25,8 +25,8 @@ const games = [
   { title: 'Phasmophobia', description: 'Investigate haunted places with friends.', tags: ['Horror', 'Multiplayer'], color: 'from-indigo-700 to-slate-900' },
 ]
 
-export default function HomePage() {
-  const [screen, setScreen] = useState('home')
+export default function HomePage({ initialScreen = 'home' }) {
+  const [screen, setScreen] = useState(initialScreen)
   const [prefs, setPrefs] = useState(() => JSON.parse(localStorage.getItem('prefs')) ?? ['Combat'])
 
   function savePrefs(next) {
@@ -85,7 +85,7 @@ function Home({ prefs, onAdjust }) {
             type="button"
             aria-label="Adjust preferences"
             title="Adjust preferences"
-            onClick={() => { window.location.href = '/preferences' }}
+            onClick={onAdjust}
           >
             <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />

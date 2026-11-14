@@ -8,7 +8,6 @@ import LibraryPage from './LibraryPage.jsx'
 import ContactPage from './ContactPage.jsx'
 import Navbar from './components/Navbar.jsx'
 import './index.css'
-import UnderConstruction from './UnderConstruction.jsx'
 
 const pathname = window.location.pathname
 
@@ -20,7 +19,7 @@ function Page() {
     return (
       <div className="flex min-h-screen flex-col">
         <Navbar />
-        <UnderConstruction />
+        <HomePage initialScreen="prefs" />
       </div>
     )
   }
