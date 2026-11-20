@@ -64,7 +64,7 @@ export default function FrontPage() {
             )}
           </div>
 
-          <a href="/library" className="group flex max-w-56 flex-col items-center text-center font-semibold leading-snug" aria-label="Account login and import your game library">
+          <a href="/login" className="group flex max-w-56 flex-col items-center text-center font-semibold leading-snug" aria-label="Account login and import your game library">
             <span className="flex size-28 items-center justify-center rounded-3xl border-[3px] border-[#392525] bg-white/40 shadow-sm transition group-hover:bg-[#392525]/5 sm:size-32">
               <ProfileIcon className="size-24 sm:size-28" />
             </span>

@@ -6,6 +6,7 @@ import FrontPage from './FrontPage.jsx'
 import HomePage from './HomePage.jsx'
 import LibraryPage from './LibraryPage.jsx'
 import ContactPage from './ContactPage.jsx'
+import LoginPage from './LoginPage.jsx'
 import Navbar from './components/Navbar.jsx'
 import './index.css'
 
@@ -14,6 +15,15 @@ const pathname = window.location.pathname
 function Page() {
   if (pathname === '/') return <FrontPage />
   if (pathname === '/library') return <LibraryPage />
+
+  if (pathname === '/login') {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <LoginPage />
+      </div>
+    )
+  }
 
   if (pathname === '/preferences') {
     return (

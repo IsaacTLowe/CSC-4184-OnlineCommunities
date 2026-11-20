@@ -1,125 +1,77 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Navbar from "./components/Navbar.jsx";
+import { api, getMe } from "./api.js";
+import { coverUrl, recommend } from "./games.js";
+import GameDetail from "./components/GameDetail.jsx";
 
-const launchers = [
-  { name: "Steam", dot: "top" },
-  { name: "Epic Games", dot: "bottom" },
-  { name: "GOG", dot: "middle" },
-  { name: "Xbox Store", dot: "top" },
-  { name: "PlayStation Store", dot: "bottom" },
-  { name: "itch.io", dot: "middle" },
-  { name: "EA app", dot: "middle" },
-  { name: "Ubisoft Connect", dot: "bottom" },
-];
-
+// /library imports the user's Steam library, then shows recommendations.
+// Not logged in, or no Steam account linked yet? /login handles both.
 export default function LibraryPage() {
-  const [screen, setScreen] = useState("launchers");
-  const [selectedPlatform, setSelectedPlatform] = useState("");
+  const [screen, setScreen] = useState("loading"); // "loading" | "recommendations" | "error"
+  const [error, setError] = useState("");
+  const [importResult, setImportResult] = useState(null);
+  const importInFlight = useRef(false);
 
   useEffect(() => {
-    if (screen !== "loading") return undefined;
+    // In dev, React StrictMode runs this effect twice on mount. The ref survives
+    // that re-run, so the second pass sees the import already in flight and skips it.
+    if (importInFlight.current) return;
+    importInFlight.current = true;
 
-    const loadingTimer = window.setTimeout(
-      () => setScreen("recommendations"),
-      2000
-    );
-    return () => window.clearTimeout(loadingTimer);
-  }, [screen]);
-
-  function selectLauncher(platform) {
-    setSelectedPlatform(platform);
-    setScreen("loading");
-  }
-
-  if (screen === "loading") {
-    return (
-      <>
-        <Navbar />
-        <LoadingScreen platform={selectedPlatform} />
-      </>
-    );
-  }
-
-  if (screen === "recommendations") {
-    return (
-      <>
-        <Navbar />
-        <RecommendationsScreen
-          onReturnToLibrary={() => setScreen("launchers")}
-        />
-      </>
-    );
-  }
+    getMe()
+      .then((me) => {
+        if (!me?.steamId) return (window.location.href = "/login");
+        return api("/steam/import", { method: "POST" }).then((result) => {
+          setImportResult(result);
+          setScreen("recommendations");
+        });
+      })
+      .catch((err) => {
+        setError(err.message);
+        setScreen("error");
+      })
+      .finally(() => (importInFlight.current = false));
+  }, []);
 
   return (
     <>
       <Navbar />
-      <main className="library-page" aria-label="Game library">
-        <div className="library-canvas">
-          <Sidebar />
-
-          <section
-            className="launcher-panel"
-            aria-labelledby="launcher-heading"
-          >
-            <h1 id="launcher-heading">
-              Select Your Game
-              <br />
-              Launcher
-            </h1>
-
-            <div className="game-grid" aria-label="Available game launchers">
-              {launchers.map(({ name, dot }) => (
-                <button
-                  className="game-tile"
-                  key={name}
-                  type="button"
-                  onClick={() => selectLauncher(name)}
-                >
-                  <span className="game-cover">
-                    <span className={`cover-dot cover-dot--${dot}`} />
-                  </span>
-                  <span className="platform-name">{name}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <aside className="import-area" aria-label="Import library">
-            <div className="import-preview" aria-hidden="true">
-              <span className="preview-heading" />
-              <div className="preview-lines">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-            </div>
-          </aside>
-
-          <BottomPlaceholders />
-        </div>
-      </main>
+      {screen === "recommendations" ? (
+        <RecommendationsScreen importResult={importResult} />
+      ) : (
+        <LoadingScreen error={screen === "error" ? error : ""} />
+      )}
     </>
   );
 }
 
-function LoadingScreen({ platform }) {
+function LoadingScreen({ error }) {
   return (
     <main className="library-page" aria-label="Loading game library">
       <div className="library-canvas">
         <Sidebar />
 
         <section className="loading-panel" aria-live="polite">
-          <p className="screen-kicker">Loading your library from</p>
-          <h1>{platform}</h1>
-          <div className="loading-mark" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-          <p className="loading-copy">Loading...</p>
+          {error ? (
+            <>
+              <p className="screen-kicker">Couldn't import your Steam library</p>
+              <p className="library-error" role="alert">{error}</p>
+              <button className="return-library-button" type="button" onClick={() => window.location.reload()}>
+                Try Again
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="screen-kicker">Loading your library from</p>
+              <h1>Steam</h1>
+              <div className="loading-mark" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+              <p className="loading-copy">Loading...</p>
+            </>
+          )}
         </section>
 
         <BottomPlaceholders />
@@ -128,7 +80,18 @@ function LoadingScreen({ platform }) {
   );
 }
 
-function RecommendationsScreen({ onReturnToLibrary }) {
+function RecommendationsScreen({ importResult }) {
+  // After a Steam import the server returns the updated user; otherwise fall
+  // back to the logged-in user's prefs, then to locally saved prefs.
+  const [user, setUser] = useState(importResult?.user ?? null);
+  const [selectedGame, setSelectedGame] = useState(null);
+  useEffect(() => {
+    if (!importResult) getMe().then(setUser);
+  }, [importResult]);
+
+  const prefs = user?.prefs ?? JSON.parse(localStorage.getItem("prefs")) ?? ["Combat"];
+  const picks = recommend(prefs, user?.ownedAppIds).slice(0, 6);
+
   return (
     <main className="library-page" aria-label="Game recommendations">
       <div className="library-canvas">
@@ -140,18 +103,30 @@ function RecommendationsScreen({ onReturnToLibrary }) {
         >
           <p className="completion-status">Done</p>
           <h1 id="recommendations-heading">You May Like These!</h1>
+          {importResult ? (
+            <p className="import-summary">
+              We looked at your {importResult.analyzed} most-played of {importResult.gameCount} Steam games (
+              {Object.entries(importResult.counts)
+                .filter(([, n]) => n > 0)
+                .map(([cat, n]) => `${cat} ${n}`)
+                .join(", ")}
+              ). Your top categories: <strong>{prefs.join(", ")}</strong>.
+            </p>
+          ) : (
+            <p className="import-summary">Based on your preferences: <strong>{prefs.join(", ")}</strong>.</p>
+          )}
           <div className="recommendation-grid" aria-label="Recommended games">
-            {Array.from({ length: 6 }, (_, index) => (
-              <span key={index} />
+            {picks.map((game) => (
+              <button className="recommendation-card" key={game.appid} type="button" onClick={() => setSelectedGame(game)}>
+                <img src={coverUrl(game.appid)} alt={`${game.title} cover art`} loading="lazy" />
+                <span>{game.title}</span>
+              </button>
             ))}
           </div>
-          <button
-            className="return-library-button"
-            type="button"
-            onClick={onReturnToLibrary}
-          >
-            Back to Library
-          </button>
+          <GameDetail game={selectedGame} onClose={() => setSelectedGame(null)} />
+          <a className="return-library-button no-underline" href="/recommendations">
+            See All Recommendations
+          </a>
         </section>
 
         <BottomPlaceholders />
