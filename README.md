@@ -1,6 +1,6 @@
-# Online Communities: Contact Page
+# Online Communities: GameFinder
 
-A contact form page built with React and Vite. There's no backend, so submitting the form only shows a confirmation message.
+A game recommendation web app built with React and Vite, with a small Express backend. Users log in with a username and password, can optionally sign in with Steam to import their library, and get recommendations based on the kinds of games they play. The contact form only shows a confirmation message.
 
 ## Requirements
 
@@ -19,6 +19,35 @@ npm run dev
 ```
 
 Then open the URL shown in the terminal (usually http://localhost:5173).
+
+## Run the backend (login + Steam import)
+
+Login and the Steam library import need the small Express server in `server/`.
+
+1. Copy `.env.example` to `.env` and paste in a Steam Web API key from https://steamcommunity.com/dev/apikey
+2. In a second terminal, run:
+
+```bash
+npm run server
+```
+
+The Vite dev server forwards every `/api` request to it (port 3001). Accounts are saved to `server/data/users.json`, which is git-ignored.
+
+### API
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| POST | `/api/register` | Create an account (`{ username, password }`) and log in |
+| POST | `/api/login` | Log in (`{ username, password }`) |
+| POST | `/api/logout` | Log out |
+| GET | `/api/me` | Current user: username, steamId, prefs, ownedAppIds |
+| PUT | `/api/prefs` | Save preferences (`{ prefs: [...] }`) |
+| GET | `/api/steam/login` | Redirects to Steam sign-in |
+| GET | `/api/steam/return` | Steam redirects back here; links the SteamID to the account |
+| GET | `/api/games/:appid` | Steam store details for the game popup (description, genres, developer, release date) |
+| POST | `/api/steam/import` | Fetches owned games, sorts the 30 most-played into categories, saves the top 3 as preferences |
+
+The Steam profile's "Game details" privacy setting must be Public for the import to see the games.
 
 ## Build
 

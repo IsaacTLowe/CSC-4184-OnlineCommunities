@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { api, getMe } from './api.js'
+import { coverUrl, games, genres, recommend } from './games.js'
+import GameDetail from './components/GameDetail.jsx'
 
 const card = 'rounded-3xl border border-[#392525]/10 bg-[#FAF5E9] shadow-xl shadow-[#392525]/5'
 
@@ -8,29 +11,23 @@ const button =
 const secondaryButton =
   'inline-flex items-center justify-center rounded-xl border border-[#392525]/20 bg-[#FAF5E9] px-6 py-3 font-semibold text-[#392525] shadow-sm transition hover:bg-[#392525]/5'
 
-const genres = ['Combat', 'Exploration', 'Story', 'Puzzle', 'Horror', 'Multiplayer']
-
-const games = [
-  { title: 'Elden Ring', description: 'Explore a vast dark fantasy world full of tough bosses.', tags: ['Combat', 'Exploration'], color: 'from-amber-400 to-orange-600' },
-  { title: 'DOOM Eternal', description: 'Fast, brutal shooting against hordes of demons.', tags: ['Combat'], color: 'from-red-500 to-rose-700' },
-  { title: 'Hades', description: 'Fight your way out of the underworld, one run at a time.', tags: ['Combat', 'Story'], color: 'from-rose-400 to-red-600' },
-  { title: 'Outer Wilds', description: 'Uncover the mystery of a solar system stuck in a time loop.', tags: ['Exploration', 'Puzzle'], color: 'from-sky-400 to-indigo-600' },
-  { title: 'Subnautica', description: 'Survive and explore an alien ocean planet.', tags: ['Exploration'], color: 'from-cyan-400 to-blue-600' },
-  { title: 'No Man\'s Sky', description: 'Fly between endless planets with friends.', tags: ['Exploration', 'Multiplayer'], color: 'from-violet-400 to-fuchsia-600' },
-  { title: 'Firewatch', description: 'A quiet mystery in the Wyoming wilderness.', tags: ['Exploration', 'Story'], color: 'from-orange-300 to-amber-600' },
-  { title: 'Portal 2', description: 'Solve mind-bending portal puzzles solo or in co-op.', tags: ['Puzzle', 'Multiplayer'], color: 'from-slate-400 to-slate-600' },
-  { title: 'Resident Evil 4', description: 'Survival horror with intense action in a hostile village.', tags: ['Horror', 'Combat'], color: 'from-stone-500 to-stone-800' },
-  { title: 'Apex Legends', description: 'Team-based battle royale with unique heroes.', tags: ['Combat', 'Multiplayer'], color: 'from-red-400 to-orange-500' },
-  { title: 'The Witcher 3', description: 'Hunt monsters across a huge story-driven open world.', tags: ['Story', 'Combat', 'Exploration'], color: 'from-emerald-400 to-teal-700' },
-  { title: 'Phasmophobia', description: 'Investigate haunted places with friends.', tags: ['Horror', 'Multiplayer'], color: 'from-indigo-700 to-slate-900' },
-]
-
 export default function HomePage({ initialScreen = 'home' }) {
   const [screen, setScreen] = useState(initialScreen)
   const [prefs, setPrefs] = useState(() => JSON.parse(localStorage.getItem('prefs')) ?? ['Combat'])
+  const [user, setUser] = useState(null)
 
-  function savePrefs(next) {
+  // Logged-in users keep their preferences (and owned Steam games) on the server.
+  useEffect(() => {
+    getMe().then((me) => {
+      setUser(me)
+      if (me?.prefs) setPrefs(me.prefs)
+    })
+  }, [])
+
+  async function savePrefs(next) {
     localStorage.setItem('prefs', JSON.stringify(next))
+    // If the server save fails (e.g. session expired after a restart), the local copy above still applies.
+    if (user) await api('/prefs', { method: 'PUT', body: { prefs: next } }).catch(() => {})
     setPrefs(next)
     setScreen('saved')
   }
@@ -38,7 +35,7 @@ export default function HomePage({ initialScreen = 'home' }) {
   return (
     <div className="flex flex-1 flex-col bg-[#FAF5E9] text-[#392525]">
       <main className="flex flex-1 justify-center px-4 py-12">
-        {screen === 'home' && <Home prefs={prefs} onAdjust={() => setScreen('prefs')} />}
+        {screen === 'home' && <Home prefs={prefs} ownedAppIds={user?.ownedAppIds} onAdjust={() => setScreen('prefs')} />}
         {screen === 'prefs' && (
           <Preferences prefs={prefs} onBack={() => setScreen('home')} onSave={savePrefs} />
         )}
@@ -48,14 +45,14 @@ export default function HomePage({ initialScreen = 'home' }) {
   )
 }
 
-function Home({ prefs, onAdjust }) {
+function Home({ prefs, ownedAppIds, onAdjust }) {
   const [query, setQuery] = useState('')
+  const [selectedGame, setSelectedGame] = useState(null)
 
-  const score = (game) => game.tags.filter((t) => prefs.includes(t)).length
   const searching = query.trim() !== ''
   const results = searching
     ? games.filter((g) => `${g.title} ${g.tags.join(' ')}`.toLowerCase().includes(query.trim().toLowerCase()))
-    : games.filter((g) => score(g) > 0).sort((a, b) => score(b) - score(a))
+    : recommend(prefs, ownedAppIds)
 
   return (
     <div className="w-full max-w-5xl">
@@ -99,19 +96,34 @@ function Home({ prefs, onAdjust }) {
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
           {results.map((game) => (
-            <GameCard key={game.title} game={game} prefs={prefs} />
+            <GameCard key={game.title} game={game} prefs={prefs} onSelect={() => setSelectedGame(game)} />
           ))}
         </div>
       )}
+
+      <GameDetail game={selectedGame} onClose={() => setSelectedGame(null)} />
     </div>
   )
 }
 
-function GameCard({ game, prefs }) {
+function GameCard({ game, prefs, onSelect }) {
   return (
-    <div>
-      <div className={`aspect-[4/3] rounded-2xl bg-gradient-to-br shadow-sm ${game.color}`} />
-      <h2 className="mt-3 font-bold">{game.title}</h2>
+    <button
+      className="group w-full cursor-pointer rounded-2xl text-left focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[#392525]"
+      type="button"
+      onClick={onSelect}
+    >
+      {/* The gradient shows behind the cover and stays visible if the image fails to load. */}
+      <div className={`aspect-[460/215] overflow-hidden rounded-2xl bg-gradient-to-br shadow-sm transition group-hover:shadow-lg group-hover:-translate-y-0.5 ${game.color}`}>
+        <img
+          className="size-full object-cover"
+          src={coverUrl(game.appid)}
+          alt={`${game.title} cover art`}
+          loading="lazy"
+          onError={(e) => (e.currentTarget.style.display = 'none')}
+        />
+      </div>
+      <h2 className="mt-3 font-bold group-hover:underline">{game.title}</h2>
       <p className="mt-1 text-sm text-[#392525]/70">{game.description}</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {game.tags.map((tag) => (
@@ -123,7 +135,7 @@ function GameCard({ game, prefs }) {
           </span>
         ))}
       </div>
-    </div>
+    </button>
   )
 }
 

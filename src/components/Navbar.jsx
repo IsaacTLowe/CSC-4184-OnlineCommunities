@@ -1,6 +1,20 @@
+import { useEffect, useState } from 'react'
+import { api, getMe } from '../api.js'
+
 const link = 'rounded-xl px-3 py-2 text-sm font-medium text-[#392525]/70 transition hover:bg-[#392525]/5 hover:text-[#392525]'
 
 export default function Navbar() {
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    getMe().then(setUser)
+  }, [])
+
+  async function logout() {
+    await api('/logout', { method: 'POST' })
+    window.location.href = '/'
+  }
+
   return (
     <nav className="sticky top-0 z-20 border-b border-[#392525]/10 bg-[#FAF5E9]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
@@ -16,6 +30,11 @@ export default function Navbar() {
         <div className="flex items-center gap-1">
           <a className={link} href="/library">Library</a>
           <a className={link} href="/contact">Contact Us</a>
+          {user ? (
+            <button className={link} type="button" onClick={logout}>Log out ({user.username})</button>
+          ) : (
+            <a className={link} href="/login">Log in</a>
+          )}
         </div>
       </div>
     </nav>
