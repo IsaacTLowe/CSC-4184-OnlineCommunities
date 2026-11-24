@@ -115,7 +115,7 @@ function ConnectSteam({ user }) {
       <div className="mt-8 flex flex-col gap-3">
         {/* Full page navigation (not fetch): the server redirects to Steam's login page. */}
         <a className={button} href={user.steamId ? '/library' : '/api/steam/login'}>
-          {user.steamId ? 'Re-import Steam Library' : 'Sign in with Steam'}
+          {user.steamId ? 'Open Steam library' : 'Sign in with Steam'}
         </a>
         <a className={secondaryButton} href="/recommendations">
           {user.steamId ? 'See Recommendations' : 'Skip for now'}

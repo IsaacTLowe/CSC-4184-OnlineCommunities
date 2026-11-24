@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const field =
   'w-full rounded-xl border border-[#392525]/20 bg-white px-4 py-3 text-[#392525] placeholder:text-[#392525]/40 shadow-sm transition focus:border-[#392525] focus:ring-4 focus:ring-[#392525]/15 focus:outline-none'
@@ -10,9 +10,9 @@ export default function ContactPage() {
   const [sent, setSent] = useState(false)
 
   return (
-    <div className="flex flex-1 flex-col bg-[#FAF5E9] text-[#392525]">
+    <div className="contact-page flex flex-1 flex-col text-[#392525]">
       <main className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md rounded-3xl border border-[#392525]/10 bg-white/80 p-8 shadow-xl shadow-[#392525]/5 backdrop-blur sm:p-10">
+        <div className="w-full max-w-md rounded-3xl border border-[#392525]/10 bg-white/80 p-8 shadow-xl shadow-[#392525]/5 sm:p-10">
           {sent ? <Confirmation /> : <ContactForm onSent={() => setSent(true)} />}
         </div>
       </main>
@@ -43,6 +43,16 @@ function ContactForm({ onSent }) {
         </div>
 
         <div>
+          <label className="mb-1.5 block text-sm font-medium text-[#392525]/80" htmlFor="category">Category</label>
+          <select className={field} id="category" name="category" defaultValue="" required>
+            <option value="" disabled>Choose a category</option>
+            <option value="general">General question</option>
+            <option value="bug">Report a bug</option>
+            <option value="suggestion">Suggest a game or feature</option>
+          </select>
+        </div>
+
+        <div>
           <label className="mb-1.5 block text-sm font-medium text-[#392525]/70" htmlFor="feedback">Feedback</label>
           <textarea className={`${field} min-h-32 resize-y`} id="feedback" name="feedback" placeholder="Write your feedback here..." required />
         </div>
@@ -54,6 +64,8 @@ function ContactForm({ onSent }) {
 }
 
 function Confirmation() {
+  const heading = useRef(null)
+  useEffect(() => { heading.current?.focus() }, [])
   return (
     <div className="flex flex-col items-center text-center">
       <div className="flex size-16 items-center justify-center rounded-full bg-[#392525]/10 text-[#392525]" aria-hidden="true">
@@ -62,7 +74,7 @@ function Confirmation() {
         </svg>
       </div>
       {/* Move focus here so screen readers announce the result after the form disappears */}
-      <h1 className="mt-6 text-2xl font-bold tracking-tight outline-none" tabIndex={-1} ref={(el) => el?.focus()}>
+      <h1 className="mt-6 text-2xl font-bold tracking-tight outline-none" tabIndex={-1} ref={heading}>
         Your feedback has been sent.
       </h1>
       <p className="mt-2 text-[#392525]/70">Thanks for reaching out.</p>

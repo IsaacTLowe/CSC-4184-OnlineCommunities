@@ -11,12 +11,14 @@ const PORT = process.env.PORT ?? 3001
 const APP_URL = process.env.APP_URL ?? 'http://localhost:5173' // where the browser sees the app
 const STEAM_API_KEY = process.env.STEAM_API_KEY
 const DB_FILE = new URL('./data/users.json', import.meta.url)
+const PENDING_DB_FILE = new URL('./data/users.tmp', import.meta.url)
 
 // ---------- storage: a JSON file is enough for a class project ----------
 const users = fs.existsSync(DB_FILE) ? JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) : {}
-const saveUsers = () => {
+const saveUsers = (data = users) => {
   fs.mkdirSync(new URL('./data/', import.meta.url), { recursive: true })
-  fs.writeFileSync(DB_FILE, JSON.stringify(users, null, 2))
+  fs.writeFileSync(PENDING_DB_FILE, JSON.stringify(data, null, 2))
+  fs.renameSync(PENDING_DB_FILE, DB_FILE)
 }
 const publicUser = (username) => {
   const { steamId = null, prefs = null, ownedAppIds = [] } = users[username]
@@ -111,8 +113,12 @@ app.get('/api/steam/return', requireLogin, async (req, res) => {
 
   if (!verify.includes('is_valid:true') || !steamId) return res.redirect(`${APP_URL}/login?steam=failed`)
 
-  users[req.username].steamId = steamId
-  saveUsers()
+  const user = users[req.username]
+  if (user.steamId !== steamId) {
+    const linkedUser = { ...user, steamId, steamLibrary: null, ownedAppIds: [] }
+    saveUsers({ ...users, [req.username]: linkedUser })
+    Object.assign(user, linkedUser)
+  }
   res.redirect(`${APP_URL}/library`)
 })
 
@@ -133,7 +139,7 @@ const storeCache = new Map() // appid -> Steam store data (rarely changes, so ke
 async function storeDetails(appid) {
   if (!storeCache.has(appid)) {
     const url = `https://store.steampowered.com/api/appdetails?appids=${appid}&l=english`
-    const data = (await fetch(url).then((r) => r.json()).catch(() => null))?.[appid]?.data
+    const data = (await fetch(url, { signal: AbortSignal.timeout(6000) }).then((r) => r.json()).catch(() => null))?.[appid]?.data
     if (!data) return null // delisted game or network error: don't cache, so a retry can work
     storeCache.set(appid, data)
   }
@@ -169,42 +175,74 @@ app.get('/api/games/:appid', async (req, res) => {
   })
 })
 
+app.get('/api/steam/library', requireLogin, (req, res) => {
+  const user = users[req.username]
+  const connected = Boolean(user.steamId)
+  res.json({ connected, library: connected ? user.steamLibrary ?? null : null })
+})
+
 app.post('/api/steam/import', requireLogin, async (req, res) => {
   const user = users[req.username]
-  if (!user.steamId) return res.status(400).json({ error: 'Connect your Steam account first' })
-  if (!STEAM_API_KEY) return res.status(500).json({ error: 'Server is missing STEAM_API_KEY' })
+  const steamId = user.steamId
+  if (!steamId) return res.status(400).json({ error: 'Connect your Steam account first' })
+  if (!STEAM_API_KEY) return res.status(500).json({ error: 'The server needs a Steam API key before it can import libraries.' })
 
-  const ownedUrl =
-    `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${STEAM_API_KEY}` +
-    `&steamid=${user.steamId}&include_appinfo=1&include_played_free_games=1`
-  const ownedRes = await fetch(ownedUrl)
+  const ownedUrl = new URL('https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/')
+  ownedUrl.search = new URLSearchParams({
+    key: STEAM_API_KEY,
+    steamid: steamId,
+    include_appinfo: '1',
+    include_played_free_games: '1',
+  })
+
+  const ownedRes = await fetch(ownedUrl, { signal: AbortSignal.timeout(12_000) }).catch(() => null)
+  if (!ownedRes) return res.status(502).json({ error: 'Couldn’t reach Steam. Try again in a moment.' })
   if (!ownedRes.ok) {
-    return res.status(502).json({ error: `Steam rejected the request (HTTP ${ownedRes.status}). Check STEAM_API_KEY in .env.` })
-  }
-  const owned = (await ownedRes.json()).response?.games ?? []
-  if (owned.length === 0) {
-    return res.status(400).json({ error: 'No games found. Make sure your Steam profile\'s "Game details" are set to Public.' })
+    return res.status(502).json({ error: 'Steam rejected the library request (HTTP ' + ownedRes.status + ').' })
   }
 
-  // Count categories across the most-played games, 5 store requests at a time.
-  const topGames = [...owned].sort((a, b) => b.playtime_forever - a.playtime_forever).slice(0, MAX_GAMES_TO_CATEGORIZE)
+  const payload = await ownedRes.json().catch(() => null)
+  const response = payload?.response
+  if (!response) return res.status(502).json({ error: 'Steam returned an unexpected response. Try again.' })
+  if (!Array.isArray(response.games) && response.game_count !== 0) {
+    return res.status(400).json({ error: 'Steam didn’t share your library. Set Game Details to Public in your Steam profile, then try again.' })
+  }
+
+  const owned = new Map()
+  for (const game of Array.isArray(response.games) ? response.games : []) {
+    if (Number.isSafeInteger(game?.appid) && game.appid > 0) owned.set(game.appid, game)
+  }
+  const games = Array.from(owned.values(), (game) => ({
+    appid: game.appid,
+    title: typeof game.name === 'string' && game.name.trim() ? game.name.trim() : 'Steam game ' + game.appid,
+  }))
+
+  // Retain the categories used by Discover, based on the most-played games.
+  const topGames = [...owned.values()]
+    .sort((a, b) => (b.playtime_forever ?? 0) - (a.playtime_forever ?? 0))
+    .slice(0, MAX_GAMES_TO_CATEGORIZE)
   const counts = Object.fromEntries(Object.keys(CATEGORY_KEYWORDS).map((c) => [c, 0]))
   for (let i = 0; i < topGames.length; i += 5) {
-    const batch = await Promise.all(topGames.slice(i, i + 5).map((g) => categorize(g.appid)))
-    batch.flat().forEach((cat) => counts[cat]++)
+    const batch = await Promise.all(topGames.slice(i, i + 5).map((game) => categorize(game.appid)))
+    batch.flat().forEach((category) => counts[category]++)
   }
 
-  // The 3 most common categories become the user's preferences.
+  if (user.steamId !== steamId) {
+    return res.status(409).json({ error: 'Your linked Steam account changed. Reload the page before importing again.' })
+  }
+
   const prefs = Object.entries(counts)
     .filter(([, n]) => n > 0)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
-    .map(([cat]) => cat)
+    .map(([category]) => category)
 
-  if (prefs.length > 0) user.prefs = prefs
-  user.ownedAppIds = owned.map((g) => g.appid)
-  saveUsers()
-  res.json({ user: publicUser(req.username), counts, gameCount: owned.length, analyzed: topGames.length })
+  const library = { games }
+  const nextUser = { ...user, steamLibrary: library, ownedAppIds: Array.from(owned.keys()) }
+  if (prefs.length > 0) nextUser.prefs = prefs
+  saveUsers({ ...users, [req.username]: nextUser })
+  Object.assign(user, nextUser)
+  res.json({ library, user: publicUser(req.username), counts, gameCount: games.length, analyzed: topGames.length })
 })
 
 // Last stop for unexpected errors (e.g. Steam unreachable): log it and answer with JSON.

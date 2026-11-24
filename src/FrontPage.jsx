@@ -1,115 +1,228 @@
-import { useState } from 'react'
-import gameController from './img/gamecontroller.svg'
+import { ArrowRight, ArrowUpRight } from 'lucide-react'
+import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react'
+import Navbar from './components/Navbar.jsx'
+import HomePage from './HomePage.jsx'
+import LibraryPage from './LibraryPage.jsx'
+import ContactPage from './ContactPage.jsx'
+import { defaultSection, primaryLinks } from './navigation.js'
+import roomImage from './img/landing-gaming-room.webp'
 
-const primaryButton =
-  'inline-flex items-center justify-center rounded-xl bg-[#392525] px-7 py-4 text-base font-semibold text-[#FAF5E9] shadow-lg shadow-[#392525]/10 transition hover:bg-[#513737] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[#392525]'
+const DiscoverPanel = memo(HomePage)
+const LibraryPanel = memo(LibraryPage)
+const ContactPanel = memo(ContactPage)
 
-const secondaryButton =
-  'inline-flex items-center justify-center rounded-xl border border-[#392525]/20 bg-[#FAF5E9] px-6 py-3 font-semibold text-[#392525] transition hover:bg-[#392525]/5 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#392525]'
+const zoomOptions = { duration: 500, easing: 'cubic-bezier(.55,.03,.19,1)', fill: 'both' }
+const slideOptions = { duration: 310, easing: 'cubic-bezier(.34,.56,.36,1)', fill: 'both' }
 
-function ProfileIcon({ className = '' }) {
-  return (
-    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
-      <circle cx="32" cy="23" r="15" />
-      <path d="M12 57c1-13 9-22 20-22s19 9 20 22" />
-    </svg>
-  )
+function canAnimate(element) {
+  return typeof element.animate === 'function' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-function GameEmblem() {
-  return (
-    <div className="relative flex aspect-square w-[min(75vw,350px)] items-center justify-center rounded-full border-4 border-[#392525] bg-[#FAF5E9] shadow-xl shadow-[#392525]/10 sm:w-[min(36vw,380px)]">
-      <div className="absolute inset-5 rounded-full border border-[#392525]/10" />
-      <img
-        src={gameController}
-        alt="Game controller"
-        className="relative block h-[75%] w-[75%] object-contain"
-      />
-    </div>
-  )
+function frameTransform(x, y, scaleX, scaleY) {
+  return 'translate3d(' + x + 'px,' + y + 'px,0) scale(' + scaleX + ',' + scaleY + ')'
 }
 
-export default function FrontPage() {
-  const [menuOpen, setMenuOpen] = useState(false)
+function measureMonitor(scene, anchor) {
+  const origin = scene.getBoundingClientRect()
+  const screen = anchor.getBoundingClientRect()
+  const width = document.documentElement.clientWidth
+  const height = window.innerHeight
+  const scaleX = screen.width / width
+  const scaleY = screen.height / height
+  const previewHeight = Math.min(height, Math.max(screen.height / scaleX, width <= 690 ? 340 : 650))
+
+  return {
+    width,
+    height,
+    stretch: height / previewHeight,
+    visible: scaleX > 0 && scaleY > 0 && screen.bottom > 0 && screen.right > 0 &&
+      screen.top < height && screen.left < width,
+    preview: frameTransform(screen.left - origin.left, screen.top - origin.top, scaleX, scaleY),
+    full: frameTransform(-origin.left, -origin.top, 1, 1),
+  }
+}
+
+function finishAnimations(animations, done) {
+  Promise.all(animations.map((animation) => animation.finished)).then(done).catch(() => {})
+  return () => animations.forEach((animation) => animation.cancel())
+}
+
+export default function FrontPage({ pathname }) {
+  const [view, setView] = useState(() => ({
+    landing: pathname === '/',
+    section: pathname === '/' ? defaultSection : pathname,
+    outgoing: null,
+    motion: null,
+  }))
+  const [preferencesRevision, setPreferencesRevision] = useState(0)
+  const refreshRecommendations = useCallback(() => setPreferencesRevision((revision) => revision + 1), [])
+  const scene = useRef(null)
+  const anchor = useRef(null)
+  const surface = useRef(null)
+  const screenContent = useRef(null)
+  const previewNav = useRef(null)
+  const shade = useRef(null)
+  const hero = useRef(null)
+  const panels = useRef({})
+  const focusedPath = useRef(pathname)
+  const { landing, section, outgoing, motion } = view
+
+  // Finish the current movement before starting one toward the latest requested
+  // route. The same mounted panels serve the monitor and the full-size web app.
+  useLayoutEffect(() => {
+    if (motion) return
+    if (pathname === '/' && !landing) {
+      setView({ ...view, landing: true, motion: 'out' })
+      return
+    }
+    const target = pathname === '/' ? defaultSection : pathname
+    if (target !== section) {
+      setView({ ...view, section: target, outgoing: section, motion: 'slide' })
+    } else if (pathname !== '/' && landing) {
+      setView({ ...view, motion: 'in' })
+    }
+  }, [pathname, view, landing, section, motion])
+
+  useLayoutEffect(() => {
+    const page = surface.current
+    const content = screenContent.current
+    if (!landing) {
+      page.removeAttribute('style')
+      content.removeAttribute('style')
+      return
+    }
+
+    function alignMonitor() {
+      const monitor = measureMonitor(scene.current, anchor.current)
+      page.style.width = monitor.width + 'px'
+      page.style.height = monitor.height + 'px'
+      page.style.transform = monitor.preview
+      page.style.visibility = 'visible'
+      content.style.transform = 'scaleY(' + monitor.stretch + ')'
+    }
+
+    const observer = new ResizeObserver(alignMonitor)
+    alignMonitor()
+    observer.observe(scene.current)
+    observer.observe(anchor.current)
+    return () => observer.disconnect()
+  }, [landing])
+
+  useLayoutEffect(() => {
+    if (!motion) return
+    const page = surface.current
+    const done = () => {
+      if (motion === 'out') panels.current[section].firstElementChild.scrollTop = 0
+      setView({ ...view, landing: motion === 'in' ? false : landing, outgoing: null, motion: null })
+    }
+
+    if (!canAnimate(page)) {
+      done()
+      return
+    }
+
+    if (motion === 'slide') {
+      const order = primaryLinks.map(({ path }) => path)
+      const direction = Math.sign(order.indexOf(section) - order.indexOf(outgoing))
+      const offset = (distance) => 'translate3d(' + distance + '%,0,0)'
+      const leaving = panels.current[outgoing]
+      const entering = panels.current[section]
+      return finishAnimations([
+        leaving.animate([{ transform: offset(0) }, { transform: offset(-direction * 100) }], slideOptions),
+        entering.animate([{ transform: offset(direction * 100) }, { transform: offset(0) }], slideOptions),
+      ], done)
+    }
+
+    const monitor = measureMonitor(scene.current, anchor.current)
+    if (!monitor.visible) {
+      done()
+      return
+    }
+
+    const options = { ...zoomOptions, direction: motion === 'out' ? 'reverse' : 'normal' }
+    function fade(layer, offset) {
+      return layer.animate([{ opacity: 1 }, { opacity: 0, offset }, { opacity: 0 }], { ...options, easing: 'linear' })
+    }
+
+    return finishAnimations([
+      page.animate([{ transform: monitor.preview }, { transform: monitor.full }], options),
+      screenContent.current.animate([{ transform: 'scaleY(' + monitor.stretch + ')' }, { transform: 'scaleY(1)' }], options),
+      fade(hero.current, 0.32),
+      fade(shade.current, 0.66),
+      fade(previewNav.current, 0.82),
+    ], done)
+  }, [view, landing, section, outgoing, motion])
+
+  useLayoutEffect(() => {
+    if (motion || (pathname === '/' ? !landing : landing || pathname !== section) ||
+      focusedPath.current === pathname) return
+    focusedPath.current = pathname
+    const heading = landing ? hero.current.querySelector('h1') : panels.current[section].querySelector('h1')
+    heading?.setAttribute('tabindex', '-1')
+    heading?.focus({ preventScroll: true })
+  }, [pathname, landing, section, motion])
 
   return (
-    <main className="flex min-h-screen flex-1 flex-col bg-[#FAF5E9] text-[#392525]">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col px-6 pb-7 pt-7 sm:px-12 lg:px-16">
-        <header className="relative z-10 flex items-start justify-between gap-6">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((open) => !open)}
-              aria-expanded={menuOpen}
-              aria-controls="front-page-menu"
-              aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
-              className="inline-flex items-center gap-3 rounded-xl border border-[#392525]/20 bg-white/55 px-5 py-3 font-semibold text-[#392525] shadow-sm transition hover:border-[#392525]/40 hover:bg-[#392525]/5 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#392525]"
-            >
-              <svg className="size-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                {menuOpen ? (
-                  <path d="M5 5l14 14M19 5 5 19" />
-                ) : (
-                  <path d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-              <span>{menuOpen ? 'Close' : 'Menu'}</span>
-            </button>
-            {menuOpen && (
-              <nav id="front-page-menu" aria-label="Main navigation" className="absolute left-0 top-full mt-3 flex w-52 flex-col gap-2 rounded-2xl border border-[#392525]/10 bg-[#FAF5E9] p-3 shadow-xl shadow-[#392525]/10">
-                <a href="/" className="rounded-lg px-4 py-2 font-semibold hover:bg-[#392525]/5">Home</a>
-                <a href="/recommendations" className="rounded-lg px-4 py-2 font-semibold hover:bg-[#392525]/5">Discover Games</a>
-                <a href="/library" className="rounded-lg px-4 py-2 font-semibold hover:bg-[#392525]/5">Game Library</a>
-                <a href="/contact" className="rounded-lg px-4 py-2 font-semibold hover:bg-[#392525]/5">Contact Us</a>
-              </nav>
-            )}
+    <div ref={scene} className={landing ? 'page-journey gamefinder-home landing-scene' : 'page-journey'} data-zoom={motion === 'in' || motion === 'out' ? motion : undefined}>
+      <Navbar currentPath={pathname} />
+      <div className="landing-room" aria-hidden="true" hidden={!landing}>
+        <div className="landing-room-shot">
+          <img src={roomImage} alt="" fetchPriority={landing ? 'high' : 'low'} />
+          <div className="landing-monitor-bezel">
+            <div ref={anchor} className="landing-monitor-anchor" />
           </div>
-
-          <a href="/login" className="group flex max-w-56 flex-col items-center text-center font-semibold leading-snug" aria-label="Account login and import your game library">
-            <span className="flex size-28 items-center justify-center rounded-3xl border-[3px] border-[#392525] bg-white/40 shadow-sm transition group-hover:bg-[#392525]/5 sm:size-32">
-              <ProfileIcon className="size-24 sm:size-28" />
-            </span>
-            <span className="mt-3 text-lg">Account Login</span>
-            <span className="text-sm sm:text-base">Import your Game Library!</span>
-          </a>
-        </header>
-
-        <section className="flex flex-1 flex-col items-center justify-center py-10 text-center sm:-mt-14" aria-labelledby="front-title">
-          <GameEmblem />
-          <h1 id="front-title" className="mt-7 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Find Your Next Favorite Game
-          </h1>
-          <p className="mt-4 max-w-xl text-base text-[#392525]/70 sm:text-lg">
-            Discover games you'll love, tailored to the way you play.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <a className={primaryButton} href="/recommendations">Explore Games</a>
-            <a className={secondaryButton} href="/library">Import Your Library</a>
-          </div>
-        </section>
-
-        <section className="mx-auto w-full max-w-4xl rounded-3xl border border-[#392525]/10 bg-white/55 px-6 py-8 text-center shadow-xl shadow-[#392525]/5 sm:px-12 sm:py-10" aria-labelledby="library-title">
-          <h2 id="library-title" className="text-2xl font-bold tracking-tight sm:text-3xl">All Your Games. One Place.</h2>
-          <p className="mx-auto mt-2 max-w-xl text-[#392525]/70">Connect your game library and find recommendations based on the games you enjoy.</p>
-          <a href="/library" className={`${primaryButton} mt-6`}>Get Started</a>
-        </section>
-
-        <footer className="mt-8 flex flex-col items-center justify-between gap-6 py-3 sm:flex-row">
-          <div className="flex flex-wrap justify-center gap-3 sm:gap-5">
-            <a href="/" className={secondaryButton}>Home</a>
-            <a href="/recommendations" className={secondaryButton}>Discover</a>
-          </div>
-
-          <a href="/contact" className="group flex flex-col items-center gap-1 text-center">
-            <span className="flex size-16 items-center justify-center rounded-full border-[3px] border-[#392525] text-4xl font-semibold transition group-hover:bg-[#392525]/5" aria-hidden="true">?</span>
-            <span className="font-medium">Contact Us</span>
-          </a>
-
-          <div className="flex flex-wrap justify-center gap-3 sm:gap-5">
-            <a href="/library" className={secondaryButton}>Library</a>
-            <a href="/preferences" className={secondaryButton}>Preferences</a>
-          </div>
-        </footer>
+        </div>
       </div>
-    </main>
+      <div ref={hero} className="landing-content" hidden={!landing}>
+        <main className="landing-hero" aria-labelledby="hero-title">
+          <div className="home-shell">
+            <div className="landing-copy">
+              <h1 id="hero-title" className="landing-title" tabIndex={-1}>Find your next <span>favorite game.</span></h1>
+              <p>Discover games that fit the way you play. Browse by genre or import your Steam library for personalized picks.</p>
+              <div className="landing-actions">
+                <a className="home-button home-button-primary" href="/recommendations">
+                  Explore games <ArrowRight size={17} aria-hidden="true" />
+                </a>
+                <a className="home-button home-button-secondary" href="/library">
+                  Import Steam library <ArrowUpRight size={17} aria-hidden="true" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+      <div ref={surface} className={'journey-surface' + (landing ? ' landing-monitor-view' : '')} inert={landing} aria-hidden={landing || undefined}>
+        <div ref={screenContent} className={'journey-screen' + (landing ? ' landing-monitor-content' : '')}>
+          <div className="monitor-navigation" ref={previewNav} hidden={!landing}>
+            <Navbar currentPath={section} preview />
+          </div>
+          <div className="journey-viewport" data-sliding={motion === 'slide' || undefined}>
+            {primaryLinks.map(({ path }) => {
+              const active = path === section
+              return (
+                <div
+                  key={path}
+                  ref={(element) => { panels.current[path] = element }}
+                  className="journey-panel"
+                  data-route={path}
+                  data-parked={(!active && path !== outgoing) || undefined}
+                  inert={!active || Boolean(motion)}
+                  aria-hidden={!active || undefined}
+                >
+                  <div className="journey-panel-scroll">
+                    {path === defaultSection ? (
+                      <DiscoverPanel preview={landing || !active} preferencesRevision={preferencesRevision} />
+                    ) : path === '/library' ? (
+                      <LibraryPanel onImported={refreshRecommendations} />
+                    ) : <ContactPanel />}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        {landing && <div ref={shade} className="landing-monitor-shade" />}
+      </div>
+    </div>
   )
 }

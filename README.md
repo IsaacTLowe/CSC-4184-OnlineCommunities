@@ -45,7 +45,8 @@ The Vite dev server forwards every `/api` request to it (port 3001). Accounts ar
 | GET | `/api/steam/login` | Redirects to Steam sign-in |
 | GET | `/api/steam/return` | Steam redirects back here; links the SteamID to the account |
 | GET | `/api/games/:appid` | Steam store details for the game popup (description, genres, developer, release date) |
-| POST | `/api/steam/import` | Fetches owned games, sorts the 30 most-played into categories, saves the top 3 as preferences |
+| GET | `/api/steam/library` | Returns the Steam connection status and saved list of imported games |
+| POST | `/api/steam/import` | Imports and saves the owned game list, and updates recommendations using the 30 most-played games |
 
 The Steam profile's "Game details" privacy setting must be Public for the import to see the games.
 

@@ -1,189 +1,183 @@
-import { useEffect, useRef, useState } from "react";
-import Navbar from "./components/Navbar.jsx";
-import { api, getMe } from "./api.js";
-import { coverUrl, recommend } from "./games.js";
-import GameDetail from "./components/GameDetail.jsx";
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowDown, ArrowRight, Check, Download, Gamepad2, LoaderCircle, RefreshCw } from 'lucide-react'
+import { api } from './api.js'
+import { coverUrl } from './games.js'
 
-// /library imports the user's Steam library, then shows recommendations.
-// Not logged in, or no Steam account linked yet? /login handles both.
-export default function LibraryPage() {
-  const [screen, setScreen] = useState("loading"); // "loading" | "recommendations" | "error"
-  const [error, setError] = useState("");
-  const [importResult, setImportResult] = useState(null);
-  const importInFlight = useRef(false);
+const pageSize = 24
+
+export default function LibraryPage({ onImported } = {}) {
+  const [access, setAccess] = useState('loading')
+  const [library, setLibrary] = useState(null)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  const [importing, setImporting] = useState(false)
+  const [error, setError] = useState('')
+  const [visibleCount, setVisibleCount] = useState(pageSize)
+  const resultsHeading = useRef(null)
+  const focusResults = useRef(false)
+  const games = useMemo(
+    () => [...(library?.games ?? [])].sort((left, right) => left.title.localeCompare(right.title)),
+    [library],
+  )
 
   useEffect(() => {
-    // In dev, React StrictMode runs this effect twice on mount. The ref survives
-    // that re-run, so the second pass sees the import already in flight and skips it.
-    if (importInFlight.current) return;
-    importInFlight.current = true;
+    let active = true
+    api('/steam/library')
+      .then(({ connected, library: savedLibrary }) => {
+        if (!active) return
+        setLibrary(savedLibrary)
+        setAccess(connected ? 'connected' : 'unlinked')
+      })
+      .catch((failure) => {
+        if (!active) return
+        if (failure.status === 401) {
+          setAccess('guest')
+        } else {
+          setError(failure.message)
+          setAccess('error')
+        }
+      })
+    return () => { active = false }
+  }, [loadAttempt])
 
-    getMe()
-      .then((me) => {
-        if (!me?.steamId) return (window.location.href = "/login");
-        return api("/steam/import", { method: "POST" }).then((result) => {
-          setImportResult(result);
-          setScreen("recommendations");
-        });
-      })
-      .catch((err) => {
-        setError(err.message);
-        setScreen("error");
-      })
-      .finally(() => (importInFlight.current = false));
-  }, []);
+  useEffect(() => {
+    if (library && focusResults.current) {
+      focusResults.current = false
+      if (!resultsHeading.current?.closest('[inert]')) resultsHeading.current?.focus()
+    }
+  }, [library])
+
+  function reloadLibrary() {
+    setAccess('loading')
+    setError('')
+    setLoadAttempt((attempt) => attempt + 1)
+  }
+
+  async function importLibrary() {
+    if (importing) return
+    setImporting(true)
+    setError('')
+    try {
+      const result = await api('/steam/import', { method: 'POST' })
+      focusResults.current = true
+      setLibrary(result.library)
+      setVisibleCount(pageSize)
+      onImported?.()
+    } catch (failure) {
+      if (failure.status === 401) setAccess('guest')
+      else setError(failure.message)
+    } finally {
+      setImporting(false)
+    }
+  }
 
   return (
-    <>
-      <Navbar />
-      {screen === "recommendations" ? (
-        <RecommendationsScreen importResult={importResult} />
-      ) : (
-        <LoadingScreen error={screen === "error" ? error : ""} />
-      )}
-    </>
-  );
-}
+    <div className="gamefinder-home steam-library-page">
+      <main className="home-shell steam-library-main" aria-labelledby="steam-library-title">
+        <header className="steam-library-heading">
+          <h1 id="steam-library-title">Steam Library</h1>
+          <p>Import your Steam library to see the games you own.</p>
+        </header>
 
-function LoadingScreen({ error }) {
-  return (
-    <main className="library-page" aria-label="Loading game library">
-      <div className="library-canvas">
-        <Sidebar />
-
-        <section className="loading-panel" aria-live="polite">
-          {error ? (
-            <>
-              <p className="screen-kicker">Couldn't import your Steam library</p>
-              <p className="library-error" role="alert">{error}</p>
-              <button className="return-library-button" type="button" onClick={() => window.location.reload()}>
-                Try Again
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="screen-kicker">Loading your library from</p>
-              <h1>Steam</h1>
-              <div className="loading-mark" aria-hidden="true">
-                <span />
-                <span />
-                <span />
+        {access === 'connected' && library ? (
+          <section className="steam-library-content" aria-labelledby="imported-games-title">
+            <div className="steam-library-status">
+              <div className="steam-status-content" role="status">
+                <span className="steam-library-icon">
+                  {importing
+                    ? <LoaderCircle className="steam-import-spinner" size={23} aria-hidden="true" />
+                    : <Check size={23} aria-hidden="true" />}
+                </span>
+                <div>
+                  <p className="steam-status-title">{importing ? 'Importing your Steam library…' : 'Library imported'}</p>
+                  <p>{importing
+                    ? 'Showing your last imported games.'
+                    : games.length + (games.length === 1 ? ' game imported successfully.' : ' games imported successfully.')}</p>
+                </div>
               </div>
-              <p className="loading-copy">Loading...</p>
-            </>
-          )}
-        </section>
-
-        <BottomPlaceholders />
-      </div>
-    </main>
-  );
-}
-
-function RecommendationsScreen({ importResult }) {
-  // After a Steam import the server returns the updated user; otherwise fall
-  // back to the logged-in user's prefs, then to locally saved prefs.
-  const [user, setUser] = useState(importResult?.user ?? null);
-  const [selectedGame, setSelectedGame] = useState(null);
-  useEffect(() => {
-    if (!importResult) getMe().then(setUser);
-  }, [importResult]);
-
-  const prefs = user?.prefs ?? JSON.parse(localStorage.getItem("prefs")) ?? ["Combat"];
-  const picks = recommend(prefs, user?.ownedAppIds).slice(0, 6);
-
-  return (
-    <main className="library-page" aria-label="Game recommendations">
-      <div className="library-canvas">
-        <Sidebar />
-
-        <section
-          className="recommendations-panel"
-          aria-labelledby="recommendations-heading"
-        >
-          <p className="completion-status">Done</p>
-          <h1 id="recommendations-heading">You May Like These!</h1>
-          {importResult ? (
-            <p className="import-summary">
-              We looked at your {importResult.analyzed} most-played of {importResult.gameCount} Steam games (
-              {Object.entries(importResult.counts)
-                .filter(([, n]) => n > 0)
-                .map(([cat, n]) => `${cat} ${n}`)
-                .join(", ")}
-              ). Your top categories: <strong>{prefs.join(", ")}</strong>.
-            </p>
-          ) : (
-            <p className="import-summary">Based on your preferences: <strong>{prefs.join(", ")}</strong>.</p>
-          )}
-          <div className="recommendation-grid" aria-label="Recommended games">
-            {picks.map((game) => (
-              <button className="recommendation-card" key={game.appid} type="button" onClick={() => setSelectedGame(game)}>
-                <img src={coverUrl(game.appid)} alt={`${game.title} cover art`} loading="lazy" />
-                <span>{game.title}</span>
+              <button className="home-button home-button-secondary" type="button" disabled={importing} onClick={importLibrary}>
+                <RefreshCw size={16} aria-hidden="true" /> Import again
               </button>
-            ))}
-          </div>
-          <GameDetail game={selectedGame} onClose={() => setSelectedGame(null)} />
-          <a className="return-library-button no-underline" href="/recommendations">
-            See All Recommendations
-          </a>
-        </section>
+            </div>
+            {error && <p className="steam-library-error" role="alert">{error}</p>}
 
-        <BottomPlaceholders />
-      </div>
-    </main>
-  );
+            <h2 ref={resultsHeading} id="imported-games-title" tabIndex={-1}>Imported games</h2>
+            {games.length === 0 ? (
+              <p className="steam-library-empty">Steam returned an empty library.</p>
+            ) : (
+              <ul className="discovery-grid steam-games">
+                {games.slice(0, visibleCount).map((game, index) => (
+                  <ImportedGame key={game.appid} game={game} loadCoverEarly={index < 4} />
+                ))}
+              </ul>
+            )}
+            {visibleCount < games.length && (
+              <div className="steam-library-more">
+                <button className="home-button home-button-secondary" type="button" onClick={() => setVisibleCount((count) => count + pageSize)}>
+                  Show more games <ArrowDown size={16} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+          </section>
+        ) : (
+          <section className="steam-import-panel" aria-label="Import your Steam library">
+            <span className="steam-library-icon">
+              {access === 'loading' || importing
+                ? <LoaderCircle className="steam-import-spinner" size={25} aria-hidden="true" />
+                : <Gamepad2 size={26} strokeWidth={1.8} aria-hidden="true" />}
+            </span>
+            <div className="steam-import-copy">
+              {access === 'loading' || importing ? (
+                <div role="status">
+                  <h2>{importing ? 'Importing your Steam library…' : 'Checking your Steam connection…'}</h2>
+                  {importing && <p>Retrieving games from Steam.</p>}
+                </div>
+              ) : access === 'guest' ? (
+                <>
+                  <h2>Log in to import your library</h2>
+                  <p>Log in to GameFinder or create an account to connect Steam.</p>
+                  <a className="home-button home-button-primary" href="/login">Log in <ArrowRight size={17} aria-hidden="true" /></a>
+                </>
+              ) : access === 'unlinked' ? (
+                <>
+                  <h2>Connect your Steam account</h2>
+                  <p>Sign in through Steam to link your library to GameFinder.</p>
+                  <a className="home-button home-button-primary" href="/api/steam/login">Sign in with Steam <ArrowRight size={17} aria-hidden="true" /></a>
+                </>
+              ) : access === 'error' ? (
+                <>
+                  <h2>Couldn’t load your library</h2>
+                  <p className="steam-library-error" role="alert">{error}</p>
+                  <button className="home-button home-button-primary" type="button" onClick={reloadLibrary}>Try again</button>
+                </>
+              ) : (
+                <>
+                  <h2>Ready to import</h2>
+                  <p>Set Game Details in your Steam profile to Public so GameFinder can read your library.</p>
+                  {error && <p className="steam-library-error" role="alert">{error}</p>}
+                  <button className="home-button home-button-primary" type="button" onClick={importLibrary}>
+                    <Download size={17} aria-hidden="true" /> {error ? 'Try again' : 'Import Steam library'}
+                  </button>
+                </>
+              )}
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
+  )
 }
 
-function Sidebar() {
+function ImportedGame({ game, loadCoverEarly }) {
+  const [coverFailed, setCoverFailed] = useState(false)
+
   return (
-    <aside className="sidebar" aria-label="Library navigation">
-      <div className="profile-mark" aria-hidden="true">
-        <svg
-          viewBox="0 0 64 64"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <circle cx="32" cy="23" r="15" />
-          <path d="M12 57c1-13 9-22 20-22s19 9 20 22" />
-        </svg>
+    <li className="steam-game">
+      <div className="discovery-cover steam-game-cover">
+        {coverFailed
+          ? <Gamepad2 size={37} strokeWidth={1.45} aria-hidden="true" />
+          : <img src={coverUrl(game.appid)} alt="" loading={loadCoverEarly ? "eager" : "lazy"} decoding="async" onError={() => setCoverFailed(true)} />}
       </div>
-
-      <div className="sidebar-placeholders" aria-hidden="true">
-        <div className="placeholder-row">
-          <span />
-          <span />
-        </div>
-        <div className="placeholder-row">
-          <span />
-          <span />
-        </div>
-        <div className="placeholder-row">
-          <span />
-          <span />
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-function BottomPlaceholders() {
-  return (
-    <nav className="bottom-placeholders" aria-label="Additional navigation">
-      <a
-        href="/preferences"
-        className="bottom-action flex items-center justify-center text-center no-underline"
-      >
-        Preferences
-      </a>
-
-      <a
-        href="/contact"
-        className="bottom-action flex items-center justify-center text-center no-underline"
-      >
-        Contact Us
-      </a>
-    </nav>
-  );
+      <div className="discovery-card-info"><h3>{game.title}</h3></div>
+    </li>
+  )
 }
