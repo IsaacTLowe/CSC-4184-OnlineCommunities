@@ -46,7 +46,6 @@ export default function Navbar({ currentPath, preview = false }) {
             <span className="site-account-placeholder" aria-hidden="true" />
           ) : user ? (
             <button className="site-account" type="button" disabled={loggingOut} onClick={logout}>
-              <span className="site-account-user" title={user.username}>{user.username}</span>
               {loggingOut ? 'Logging out…' : 'Log out'}
             </button>
           ) : (
