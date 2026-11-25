@@ -1,42 +1,61 @@
 import { useEffect, useState } from 'react'
+import { ArrowUpRight, Gamepad2 } from 'lucide-react'
 import { api, getMe } from '../api.js'
+import { primaryLinks } from '../navigation.js'
 
-const link = 'rounded-xl px-3 py-2 text-sm font-medium text-[#392525]/70 transition hover:bg-[#392525]/5 hover:text-[#392525]'
-
-export default function Navbar() {
-  const [user, setUser] = useState(null)
+export default function Navbar({ currentPath, preview = false }) {
+  const [user, setUser] = useState(undefined)
+  const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState(false)
 
   useEffect(() => {
-    getMe().then(setUser)
-  }, [])
+    if (preview) return
+    let active = true
+    getMe().then((player) => {
+      if (active) setUser(player)
+    })
+    return () => { active = false }
+  }, [preview])
 
   async function logout() {
-    await api('/logout', { method: 'POST' })
-    window.location.href = '/'
+    setLoggingOut(true)
+    setLogoutError(false)
+    try {
+      await api('/logout', { method: 'POST' })
+      window.location.reload()
+    } catch {
+      setLoggingOut(false)
+      setLogoutError(true)
+    }
   }
 
   return (
-    <nav className="sticky top-0 z-20 border-b border-[#392525]/10 bg-[#FAF5E9]">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <a className="flex items-center gap-2 text-lg font-bold tracking-tight text-[#392525]" href="/" aria-label="Home">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-[#392525] text-[#FAF5E9]">
-            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="2" y="7" width="20" height="11" rx="5" />
-              <path d="M7 11v3M5.5 12.5h3M16 12h.01M18 14h.01" />
-            </svg>
-          </span>
+    <header className="site-header">
+      <nav className="home-shell site-navigation" aria-label="Main navigation">
+        <a className="site-brand" href="/" aria-label="GameFinder landing page">
+          <span className="site-brand-icon"><Gamepad2 size={22} strokeWidth={1.8} aria-hidden="true" /></span>
           GameFinder
         </a>
-        <div className="flex items-center gap-1">
-          <a className={link} href="/library">Library</a>
-          <a className={link} href="/contact">Contact Us</a>
-          {user ? (
-            <button className={link} type="button" onClick={logout}>Log out ({user.username})</button>
-          ) : (
-            <a className={link} href="/login">Log in</a>
-          )}
+        <div className="site-nav-links">
+          {primaryLinks.map(({ path, label }) => (
+            <a key={path} href={path} aria-current={currentPath === path ? 'page' : undefined}>{label}</a>
+          ))}
         </div>
-      </div>
-    </nav>
+        <div className="site-account-area">
+          {user === undefined ? (
+            <span className="site-account-placeholder" aria-hidden="true" />
+          ) : user ? (
+            <button className="site-account" type="button" disabled={loggingOut} onClick={logout}>
+              {loggingOut ? 'Logging out…' : 'Log out'}
+            </button>
+          ) : (
+            <a className="site-account" href="/login" aria-current={currentPath === '/login' ? 'page' : undefined}>
+              Log in <ArrowUpRight size={16} aria-hidden="true" />
+            </a>
+          )}
+          {logoutError && <p className="site-account-error" role="alert">Could not log out. Try again.</p>}
+        </div>
+      </nav>
+    </header>
   )
 }

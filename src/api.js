@@ -9,7 +9,11 @@ export async function api(path, { method = 'GET', body } = {}) {
   // No JSON back means the request never reached our server (usually it isn't running,
   // so the Vite proxy answers with an empty error instead).
   if (data === null) throw new Error("Can't reach the server. Is `npm run server` running?")
-  if (!res.ok) throw new Error(data.error ?? 'Something went wrong')
+  if (!res.ok) {
+    const error = new Error(data.error ?? 'Something went wrong')
+    error.status = res.status
+    throw error
+  }
   return data
 }
 

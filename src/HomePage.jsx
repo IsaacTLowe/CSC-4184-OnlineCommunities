@@ -1,189 +1,170 @@
 import { useEffect, useState } from 'react'
-import { api, getMe } from './api.js'
+import {
+  ArrowDown, ArrowRight, BookOpen, Compass, Gamepad2, Ghost, Puzzle, Scan, Search, SlidersHorizontal, Swords, Users, X,
+} from 'lucide-react'
 import { coverUrl, games, genres, recommend } from './games.js'
 import GameDetail from './components/GameDetail.jsx'
+import { usePlayerPreferences } from './preferences.js'
 
-const card = 'rounded-3xl border border-[#392525]/10 bg-[#FAF5E9] shadow-xl shadow-[#392525]/5'
+const pageSize = 8
+const genreIcons = { Combat: Swords, Exploration: Compass, Story: BookOpen, Puzzle, Horror: Ghost, Multiplayer: Users }
+const featuredGame = games.find((game) => game.appid === 1145360)
+const featuredArt = 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/' + featuredGame.appid + '/library_hero.jpg'
 
-const button =
-  'inline-flex items-center justify-center rounded-xl bg-[#392525] px-6 py-3 font-semibold text-[#FAF5E9] shadow-sm transition hover:bg-[#392525]/90 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#392525]'
-
-const secondaryButton =
-  'inline-flex items-center justify-center rounded-xl border border-[#392525]/20 bg-[#FAF5E9] px-6 py-3 font-semibold text-[#392525] shadow-sm transition hover:bg-[#392525]/5'
-
-export default function HomePage({ initialScreen = 'home' }) {
-  const [screen, setScreen] = useState(initialScreen)
-  const [prefs, setPrefs] = useState(() => JSON.parse(localStorage.getItem('prefs')) ?? ['Combat'])
-  const [user, setUser] = useState(null)
-
-  // Logged-in users keep their preferences (and owned Steam games) on the server.
-  useEffect(() => {
-    getMe().then((me) => {
-      setUser(me)
-      if (me?.prefs) setPrefs(me.prefs)
-    })
-  }, [])
-
-  async function savePrefs(next) {
-    localStorage.setItem('prefs', JSON.stringify(next))
-    // If the server save fails (e.g. session expired after a restart), the local copy above still applies.
-    if (user) await api('/prefs', { method: 'PUT', body: { prefs: next } }).catch(() => {})
-    setPrefs(next)
-    setScreen('saved')
-  }
-
+export default function HomePage({ preview, preferencesRevision }) {
   return (
-    <div className="flex flex-1 flex-col bg-[#FAF5E9] text-[#392525]">
-      <main className="flex flex-1 justify-center px-4 py-12">
-        {screen === 'home' && <Home prefs={prefs} ownedAppIds={user?.ownedAppIds} onAdjust={() => setScreen('prefs')} />}
-        {screen === 'prefs' && (
-          <Preferences prefs={prefs} onBack={() => setScreen('home')} onSave={savePrefs} />
-        )}
-        {screen === 'saved' && <Saved onHome={() => setScreen('home')} />}
+    <div className="gamefinder-home discovery-page">
+      <main className="home-shell discovery-main" aria-labelledby="discovery-title">
+        <h1 id="discovery-title" className="sr-only" tabIndex={-1}>Discover games</h1>
+        <GameDiscovery preview={preview} preferencesRevision={preferencesRevision} />
       </main>
+      <footer className="home-footer">
+        <div className="home-shell">
+          <a className="home-footer-brand" href="/"><Gamepad2 size={21} aria-hidden="true" /> GameFinder</a>
+          <a href="/contact">Contact Us</a>
+        </div>
+      </footer>
     </div>
   )
 }
 
-function Home({ prefs, ownedAppIds, onAdjust }) {
+function GameDiscovery({ preview, preferencesRevision }) {
   const [query, setQuery] = useState('')
+  const [genre, setGenre] = useState('')
+  const [visibleCount, setVisibleCount] = useState(pageSize)
   const [selectedGame, setSelectedGame] = useState(null)
+  const { user, prefs } = usePlayerPreferences(preferencesRevision)
+  const search = query.trim().toLowerCase()
+  const hasFilter = Boolean(search || genre)
+  const results = hasFilter
+    ? games.filter((game) =>
+        (!genre || game.tags.includes(genre)) &&
+        [game.title, ...game.tags].join(' ').toLowerCase().includes(search),
+      )
+    : recommend(prefs, user?.ownedAppIds)
 
-  const searching = query.trim() !== ''
-  const results = searching
-    ? games.filter((g) => `${g.title} ${g.tags.join(' ')}`.toLowerCase().includes(query.trim().toLowerCase()))
-    : recommend(prefs, ownedAppIds)
+  useEffect(() => {
+    if (preview) setSelectedGame(null)
+  }, [preview])
+
+  function updateQuery(next) {
+    setQuery(next)
+    setVisibleCount(pageSize)
+  }
+
+  function updateGenre(next) {
+    setGenre(next)
+    setVisibleCount(pageSize)
+  }
+
+  function resetFilters() {
+    updateQuery('')
+    updateGenre('')
+  }
 
   return (
-    <div className="w-full max-w-5xl">
-      <div className="relative mx-auto max-w-2xl">
-        <svg viewBox="0 0 24 24" className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#392525]/50" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="7" />
-          <path d="m20 20-3.5-3.5" />
-        </svg>
-        <input
-          className="w-full rounded-2xl border border-[#392525]/20 bg-[#FAF5E9] py-4 pr-4 pl-12 text-[#392525] shadow-sm placeholder:text-[#392525]/60 transition focus:border-[#392525] focus:ring-4 focus:ring-[#392525]/15 focus:outline-none"
-          type="search"
-          placeholder="Search games or genres..."
-          aria-label="Search games"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
-
-      <h1 className="mt-10 text-3xl font-bold tracking-tight">{searching ? 'Search Results' : 'Recommended for You'}</h1>
-      {searching ? (
-        <p className="mt-1 text-[#392525]/70">{`${results.length} games match "${query.trim()}"`}</p>
-      ) : (
-        <div className="mt-1 flex items-center gap-2 text-[#392525]/70">
-          <p>Based on your preferences: {prefs.join(', ')}</p>
-          <button
-            className="flex size-6 items-center justify-center rounded-full border border-[#392525] text-[#392525] transition hover:bg-[#392525]/5"
-            type="button"
-            aria-label="Adjust preferences"
-            title="Adjust preferences"
-            onClick={onAdjust}
-          >
-            <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-            </svg>
+    <div className="home-discovery">
+      <section className="discovery-feature" aria-labelledby="featured-title">
+        <img className="discovery-feature-art" src={featuredArt} alt="" decoding="async" onError={(event) => { event.currentTarget.hidden = true }} />
+        <div className="discovery-feature-copy">
+          <p className="discovery-feature-label">Featured game</p>
+          <h2 id="featured-title">{featuredGame.title}</h2>
+          <p>{featuredGame.description}</p>
+          <button className="home-button" type="button" onClick={() => setSelectedGame(featuredGame)}>
+            View game <ArrowRight size={16} aria-hidden="true" />
           </button>
         </div>
-      )}
+      </section>
 
-      {results.length === 0 ? (
-        <p className={`${card} mt-6 p-10 text-center text-[#392525]/70`}>No games found. Try a different search.</p>
-      ) : (
-        <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
-          {results.map((game) => (
-            <GameCard key={game.title} game={game} prefs={prefs} onSelect={() => setSelectedGame(game)} />
-          ))}
+      <div className="discovery-controls">
+        <div className="discovery-tools">
+          <div className="discovery-search">
+            <Search size={18} aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Search games"
+              placeholder="Search games"
+              value={query}
+              onChange={(event) => updateQuery(event.target.value)}
+            />
+            {query && (
+              <button type="button" aria-label="Clear search" onClick={() => updateQuery('')}>
+                <X size={18} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          <a className="discovery-preferences" href="/preferences" aria-label="Preferences" title="Preferences">
+            <SlidersHorizontal size={19} aria-hidden="true" />
+          </a>
         </div>
-      )}
+        <div className="discovery-genres" role="group" aria-label="Filter games by genre">
+          {genres.map((name) => {
+            const Icon = genreIcons[name]
+            return (
+              <button
+                className="discovery-genre-tile"
+                key={name}
+                type="button"
+                aria-pressed={genre === name}
+                onClick={() => updateGenre(genre === name ? '' : name)}
+              >
+                <Icon size={23} strokeWidth={1.65} aria-hidden="true" />
+                <span>{name}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
-      <GameDetail game={selectedGame} onClose={() => setSelectedGame(null)} />
+      <section className="discovery-results" aria-labelledby="results-title">
+        <div className="discovery-results-header">
+          <div className="discovery-summary" aria-live="polite">
+            <h2 id="results-title">{hasFilter ? genre || 'Search results' : 'Recommended for you'}</h2>
+            <p>{hasFilter
+              ? results.length + (results.length === 1 ? ' game found' : ' games found')
+              : prefs.join(', ')}</p>
+          </div>
+          {hasFilter && <button className="home-button home-button-secondary" type="button" onClick={resetFilters}>Back to recommendations</button>}
+        </div>
+        {results.length > 0 ? (
+          <div className="discovery-grid">
+            {results.slice(0, visibleCount).map((game, index) => (
+              <GameCard key={game.appid} game={game} loadCoverEarly={index < 4} onSelect={() => setSelectedGame(game)} />
+            ))}
+          </div>
+        ) : (
+          <p className="discovery-empty">{hasFilter
+            ? 'No games match. Try another search or genre.'
+            : 'Try adjusting your preferences to find more games.'}</p>
+        )}
+        {visibleCount < results.length && (
+          <div className="discovery-more">
+            <button className="home-button home-button-secondary" type="button" onClick={() => setVisibleCount(visibleCount + pageSize)}>
+              Show more games <ArrowDown size={17} aria-hidden="true" />
+            </button>
+          </div>
+        )}
+      </section>
+      <GameDetail game={preview ? null : selectedGame} onClose={() => setSelectedGame(null)} />
     </div>
   )
 }
 
-function GameCard({ game, prefs, onSelect }) {
+function GameCard({ game, loadCoverEarly, onSelect }) {
+  const [coverFailed, setCoverFailed] = useState(false)
+
   return (
-    <button
-      className="group w-full cursor-pointer rounded-2xl text-left focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[#392525]"
-      type="button"
-      onClick={onSelect}
-    >
-      {/* The gradient shows behind the cover and stays visible if the image fails to load. */}
-      <div className={`aspect-[460/215] overflow-hidden rounded-2xl bg-gradient-to-br shadow-sm transition group-hover:shadow-lg group-hover:-translate-y-0.5 ${game.color}`}>
-        <img
-          className="size-full object-cover"
-          src={coverUrl(game.appid)}
-          alt={`${game.title} cover art`}
-          loading="lazy"
-          onError={(e) => (e.currentTarget.style.display = 'none')}
-        />
+    <button className="discovery-card" type="button" onClick={onSelect} aria-label={'View ' + game.title + ' details'}>
+      <div className={'discovery-cover bg-gradient-to-br ' + game.color}>
+        {!coverFailed && <img src={coverUrl(game.appid)} alt="" loading={loadCoverEarly ? 'eager' : 'lazy'} decoding="async" onError={() => setCoverFailed(true)} />}
       </div>
-      <h2 className="mt-3 font-bold group-hover:underline">{game.title}</h2>
-      <p className="mt-1 text-sm text-[#392525]/70">{game.description}</p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {game.tags.map((tag) => (
-          <span
-            key={tag}
-            className={`rounded-full px-2.5 py-1 text-xs font-medium ${prefs.includes(tag) ? 'bg-[#392525]/10 text-[#392525]' : 'bg-[#392525]/5 text-[#392525]/70'}`}
-          >
-            {tag}
-          </span>
-        ))}
+      <div className="discovery-card-info">
+        <div>
+          <h3>{game.title}</h3>
+          <p>{game.tags.join(' · ')}</p>
+        </div>
+        <span className="discovery-expand"><Scan size={18} strokeWidth={1.7} aria-hidden="true" /></span>
       </div>
     </button>
-  )
-}
-
-function Preferences({ prefs, onBack, onSave }) {
-  const [selected, setSelected] = useState(prefs)
-
-  function toggle(genre) {
-    setSelected(selected.includes(genre) ? selected.filter((g) => g !== genre) : [...selected, genre])
-  }
-
-  return (
-    <div className={`${card} h-fit w-full max-w-md p-8 sm:p-10`}>
-      <h1 className="text-center text-3xl font-bold tracking-tight">Adjust Preferences</h1>
-      <p className="mt-2 text-center text-[#392525]/70">Pick what you want more of in your recommendations.</p>
-
-      <div className="mt-8 space-y-3">
-        {genres.map((genre) => (
-          <label
-            key={genre}
-            className={`flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 transition ${selected.includes(genre) ? 'border-[#392525] bg-[#392525]/5' : 'border-[#392525]/20 bg-[#FAF5E9] hover:bg-[#392525]/5'}`}
-          >
-            <span className="font-medium text-[#392525]">More {genre.toLowerCase()}</span>
-            <input className="size-5 accent-[#392525]" type="checkbox" checked={selected.includes(genre)} onChange={() => toggle(genre)} />
-          </label>
-        ))}
-      </div>
-
-      <div className="mt-8 flex gap-3">
-        <button className={`${secondaryButton} flex-1`} type="button" onClick={onBack}>Back</button>
-        <button className={`${button} flex-1 disabled:opacity-50`} type="button" disabled={selected.length === 0} onClick={() => onSave(selected)}>
-          Save
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function Saved({ onHome }) {
-  return (
-    <div className="flex w-full max-w-md flex-col items-center self-center text-center">
-      <div className="flex size-16 items-center justify-center rounded-full bg-[#392525]/10 text-[#392525]" aria-hidden="true">
-        <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12.5 10 17l9-10" />
-        </svg>
-      </div>
-      <h1 className="mt-6 text-2xl font-bold tracking-tight">Your preferences have been saved.</h1>
-      <p className="mt-2 text-[#392525]/70">Your recommendations are updated.</p>
-      <button className={`${button} mt-8`} type="button" onClick={onHome}>See Recommendations</button>
-    </div>
   )
 }
