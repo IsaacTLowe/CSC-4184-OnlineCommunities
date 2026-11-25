@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react'
 import {
   ArrowDown, ArrowRight, BookOpen, Compass, Gamepad2, Ghost, Puzzle, Scan, Search, SlidersHorizontal, Swords, Users, X,
 } from 'lucide-react'
-import { coverUrl, games, genres, recommend } from './games.js'
+import { genres } from './games.js'
+import { catalog, getOwnedIds, normalizeSearch, platformLabels, recommendCatalog } from './gameCatalog.js'
+import PlatformSelector from './components/PlatformSelector.jsx'
+import GameCover from './components/GameCover.jsx'
+import { useNintendoLibrary } from './useNintendoLibrary.js'
 import GameDetail from './components/GameDetail.jsx'
 import { usePlayerPreferences } from './preferences.js'
 
 const pageSize = 8
 const genreIcons = { Combat: Swords, Exploration: Compass, Story: BookOpen, Puzzle, Horror: Ghost, Multiplayer: Users }
-const featuredGame = games.find((game) => game.appid === 1145360)
+const featuredGame = catalog.find((game) => game.appid === 1145360)
 const featuredArt = 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/' + featuredGame.appid + '/library_hero.jpg'
 
 export default function HomePage({ preview, preferencesRevision }) {
@@ -31,17 +35,21 @@ export default function HomePage({ preview, preferencesRevision }) {
 function GameDiscovery({ preview, preferencesRevision }) {
   const [query, setQuery] = useState('')
   const [genre, setGenre] = useState('')
+  const [platform, setPlatform] = useState('all')
   const [visibleCount, setVisibleCount] = useState(pageSize)
   const [selectedGame, setSelectedGame] = useState(null)
   const { user, prefs } = usePlayerPreferences(preferencesRevision)
-  const search = query.trim().toLowerCase()
+  const { entries } = useNintendoLibrary(user)
+  const ownedIds = getOwnedIds(user?.ownedAppIds, entries)
+  const search = normalizeSearch(query)
   const hasFilter = Boolean(search || genre)
   const results = hasFilter
-    ? games.filter((game) =>
+    ? catalog.filter((game) =>
+        (platform === 'all' || game.platforms.includes(platform)) &&
         (!genre || game.tags.includes(genre)) &&
-        [game.title, ...game.tags].join(' ').toLowerCase().includes(search),
+        normalizeSearch([game.title, ...game.tags].join(' ')).includes(search),
       )
-    : recommend(prefs, user?.ownedAppIds)
+    : recommendCatalog({ prefs, steamIds: user?.ownedAppIds, nintendoEntries: entries, platform })
 
   useEffect(() => {
     if (preview) setSelectedGame(null)
@@ -54,6 +62,11 @@ function GameDiscovery({ preview, preferencesRevision }) {
 
   function updateGenre(next) {
     setGenre(next)
+    setVisibleCount(pageSize)
+  }
+
+  function updatePlatform(next) {
+    setPlatform(next)
     setVisibleCount(pageSize)
   }
 
@@ -97,6 +110,7 @@ function GameDiscovery({ preview, preferencesRevision }) {
             <SlidersHorizontal size={19} aria-hidden="true" />
           </a>
         </div>
+        <PlatformSelector value={platform} onChange={updatePlatform} />
         <div className="discovery-genres" role="group" aria-label="Filter games by genre">
           {genres.map((name) => {
             const Icon = genreIcons[name]
@@ -122,14 +136,14 @@ function GameDiscovery({ preview, preferencesRevision }) {
             <h2 id="results-title">{hasFilter ? genre || 'Search results' : 'Recommended for you'}</h2>
             <p>{hasFilter
               ? results.length + (results.length === 1 ? ' game found' : ' games found')
-              : prefs.join(', ')}</p>
+              : prefs.join(', ') + (entries.length ? ' · Includes Nintendo library interests' : '')}</p>
           </div>
           {hasFilter && <button className="home-button home-button-secondary" type="button" onClick={resetFilters}>Back to recommendations</button>}
         </div>
         {results.length > 0 ? (
           <div className="discovery-grid">
             {results.slice(0, visibleCount).map((game, index) => (
-              <GameCard key={game.appid} game={game} loadCoverEarly={index < 4} onSelect={() => setSelectedGame(game)} />
+              <GameCard key={game.id} game={game} platform={platform} owned={ownedIds.has(game.id)} loadCoverEarly={index < 4} onSelect={() => setSelectedGame(game)} />
             ))}
           </div>
         ) : (
@@ -145,23 +159,21 @@ function GameDiscovery({ preview, preferencesRevision }) {
           </div>
         )}
       </section>
-      <GameDetail game={preview ? null : selectedGame} onClose={() => setSelectedGame(null)} />
+      <GameDetail game={preview ? null : selectedGame} platform={platform} onClose={() => setSelectedGame(null)} />
     </div>
   )
 }
 
-function GameCard({ game, loadCoverEarly, onSelect }) {
-  const [coverFailed, setCoverFailed] = useState(false)
+function GameCard({ game, platform, loadCoverEarly, onSelect, owned }) {
 
   return (
     <button className="discovery-card" type="button" onClick={onSelect} aria-label={'View ' + game.title + ' details'}>
-      <div className={'discovery-cover bg-gradient-to-br ' + game.color}>
-        {!coverFailed && <img src={coverUrl(game.appid)} alt="" loading={loadCoverEarly ? 'eager' : 'lazy'} decoding="async" onError={() => setCoverFailed(true)} />}
-      </div>
+      <GameCover game={game} platform={platform} eager={loadCoverEarly} />
       <div className="discovery-card-info">
         <div>
           <h3>{game.title}</h3>
           <p>{game.tags.join(' · ')}</p>
+          <p className="game-platform-label">{game.platforms.map(id => platformLabels[id]).join(' / ')}{owned ? ' · Owned' : ''}</p>
         </div>
         <span className="discovery-expand"><Scan size={18} strokeWidth={1.7} aria-hidden="true" /></span>
       </div>
