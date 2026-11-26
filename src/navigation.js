@@ -1,6 +1,6 @@
 export const primaryLinks = [
   { path: '/recommendations', label: 'Discover' },
-  { path: '/library', label: 'Steam Library' },
+  { path: '/library', label: 'Library' },
   { path: '/contact', label: 'Contact Us' },
 ]
 
