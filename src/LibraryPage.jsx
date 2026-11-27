@@ -139,7 +139,7 @@ export default function LibraryPage({ onImported } = {}) {
     setError('')
     setNotice('')
     try {
-      const result = await api(`/library/${game.platform}/games/${game.catalogId}`, { method: 'DELETE' })
+      const result = await api(`/library/${game.platform}/games/${encodeURIComponent(game.id.slice(game.platform.length + 1))}`, { method: 'DELETE' })
       applyLibrary(result)
       setNotice(`${game.title} removed from your ${platformNames[game.platform]} library.`)
     } catch (failure) {
@@ -231,7 +231,7 @@ export default function LibraryPage({ onImported } = {}) {
                     </li>
                   ))}</ul>}
           {access === 'ready' && visibleCount < filteredGames.length && <div className="steam-library-more"><button className="home-button home-button-secondary" type="button" onClick={() => setVisibleCount((count) => count + pageSize)}>Show more games <ArrowDown size={16} aria-hidden="true" /></button></div>}
-          {games.some((game) => game.platform !== 'steam') && <p className="catalog-attribution">Console game data and artwork provided by <a href="https://rawg.io" target="_blank" rel="noreferrer">RAWG</a>.</p>}
+          {games.some((game) => game.platform !== 'steam') && <p className="catalog-attribution">Console game data and artwork provided by <a href="https://www.igdb.com" target="_blank" rel="noreferrer">IGDB</a>.</p>}
         </section>
       </main>
     </div>

@@ -10,11 +10,12 @@ const isMain = process.argv[1] && pathToFileURL(process.argv[1]).href === import
 if (isMain && fs.existsSync('.env')) process.loadEnvFile('.env')
 
 // Injectable storage and upstream fetch keep integration tests away from real
-// accounts and external Steam/RAWG services.
+// accounts and external Steam/IGDB services.
 export function createApp({
   dbFile = new URL('./data/users.json', import.meta.url),
   steamApiKey = process.env.STEAM_API_KEY,
-  catalogApiKey = process.env.RAWG_API_KEY,
+  catalogClientId = process.env.TWITCH_CLIENT_ID,
+  catalogClientSecret = process.env.TWITCH_CLIENT_SECRET,
   appUrl = process.env.APP_URL ?? 'http://localhost:5173',
   fetchImpl = globalThis.fetch,
 } = {}) {
@@ -42,7 +43,7 @@ export function createApp({
 
   const app = express()
   app.use(express.json())
-  const catalog = createCatalog({ apiKey: catalogApiKey, fetchImpl })
+  const catalog = createCatalog({ clientId: catalogClientId, clientSecret: catalogClientSecret, fetchImpl })
 
   // Attach req.username if the request has a valid session cookie.
   app.use((req, _res, next) => {

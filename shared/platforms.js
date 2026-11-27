@@ -1,38 +1,37 @@
 export const platformNames = { steam: 'Steam', xbox: 'Xbox', playstation: 'PlayStation' }
 
-// RAWG's platform families cover every generation, including handhelds.
+// IGDB's console IDs cover every generation, including handhelds.
 export const consolePlatforms = {
   xbox: {
     name: 'Xbox',
-    parentId: 3,
     consoles: [
-      { id: 186, name: 'Xbox Series X|S' },
-      { id: 1, name: 'Xbox One' },
-      { id: 14, name: 'Xbox 360' },
-      { id: 80, name: 'Xbox' },
+      { id: 169, name: 'Xbox Series X|S' },
+      { id: 49, name: 'Xbox One' },
+      { id: 12, name: 'Xbox 360' },
+      { id: 11, name: 'Xbox' },
     ],
   },
   playstation: {
     name: 'PlayStation',
-    parentId: 2,
     consoles: [
-      { id: 187, name: 'PlayStation 5' },
-      { id: 18, name: 'PlayStation 4' },
-      { id: 16, name: 'PlayStation 3' },
-      { id: 15, name: 'PlayStation 2' },
-      { id: 27, name: 'PlayStation' },
-      { id: 19, name: 'PS Vita' },
-      { id: 17, name: 'PSP' },
+      { id: 167, name: 'PlayStation 5' },
+      { id: 48, name: 'PlayStation 4' },
+      { id: 9, name: 'PlayStation 3' },
+      { id: 8, name: 'PlayStation 2' },
+      { id: 7, name: 'PlayStation' },
+      { id: 46, name: 'PS Vita' },
+      { id: 38, name: 'PSP' },
     ],
   },
 }
 
 export const catalogGenres = [
-  ['action', 'Action'], ['adventure', 'Adventure'], ['arcade', 'Arcade'],
-  ['board-games', 'Board games'], ['card', 'Card'], ['casual', 'Casual'],
-  ['educational', 'Educational'], ['family', 'Family'], ['fighting', 'Fighting'],
-  ['indie', 'Indie'], ['massively-multiplayer', 'Massively multiplayer'],
-  ['platformer', 'Platformer'], ['puzzle', 'Puzzle'], ['racing', 'Racing'],
-  ['role-playing-games-rpg', 'RPG'], ['shooter', 'Shooter'], ['simulation', 'Simulation'],
-  ['sports', 'Sports'], ['strategy', 'Strategy'],
-].map(([id, name]) => ({ id, name }))
+  ['adventure', 'Adventure', 31], ['arcade', 'Arcade', 33], ['card', 'Card & board games', 35],
+  ['fighting', 'Fighting', 4], ['hack-and-slash', 'Hack and slash', 25], ['indie', 'Indie', 32],
+  ['music', 'Music', 7], ['platformer', 'Platformer', 8], ['point-and-click', 'Point and click', 2],
+  ['puzzle', 'Puzzle', 9], ['quiz', 'Quiz', 26], ['racing', 'Racing', 10],
+  ['role-playing-games-rpg', 'RPG', 12], ['shooter', 'Shooter', 5], ['simulation', 'Simulation', 13],
+  ['sports', 'Sports', 14], ['strategy', 'Strategy', 15], ['tactical', 'Tactical', 24],
+  ['turn-based', 'Turn-based strategy', 16], ['real-time-strategy', 'Real-time strategy', 11],
+  ['visual-novel', 'Visual novel', 34], ['pinball', 'Pinball', 30], ['moba', 'MOBA', 36],
+].map(([id, name, igdbId]) => ({ id, name, igdbId }))

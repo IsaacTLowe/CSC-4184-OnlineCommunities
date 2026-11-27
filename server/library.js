@@ -44,13 +44,14 @@ export function createLibraryRouter({ users, saveUsers, catalog }) {
     const currentGames = users[req.username].consoleGames ?? []
     const owned = new Set(currentGames.map((game) => game.id))
     const addedAt = new Date().toISOString()
-    const newGames = selectedGames.filter((game) => !owned.has(game.id)).map((game) => ({ ...game, addedAt }))
+    const legacyTitles = new Set(currentGames.filter((game) => !game.provider).map((game) => game.platform + ':' + game.title.normalize('NFKC').toLowerCase()))
+    const newGames = selectedGames.filter((game) => !owned.has(game.id) && !legacyTitles.has(game.platform + ':' + game.title.normalize('NFKC').toLowerCase())).map((game) => ({ ...game, addedAt }))
     if (newGames.length) saveLibrary(req.username, [...currentGames, ...newGames])
     res.status(newGames.length ? 201 : 200).json({ ...libraryState(users[req.username]), addedCount: newGames.length })
   })
 
   router.delete('/:platform/games/:gameId', (req, res) => {
-    if (!/^[1-9]\d*$/.test(req.params.gameId) || !Number.isSafeInteger(Number(req.params.gameId))) {
+    if (!/^(?:igdb:)?[1-9]\d*$/.test(req.params.gameId) || !Number.isSafeInteger(Number(req.params.gameId.replace(/^igdb:/, '')))) {
       return res.status(400).json({ error: 'Invalid game ID.' })
     }
     const id = `${req.params.platform}:${req.params.gameId}`
