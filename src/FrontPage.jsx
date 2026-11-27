@@ -178,13 +178,13 @@ export default function FrontPage({ pathname }) {
           <div className="home-shell">
             <div className="landing-copy">
               <h1 id="hero-title" className="landing-title" tabIndex={-1}>Find your next <span>favorite game.</span></h1>
-              <p>Discover games that fit the way you play. Find your next favorite and keep your Steam, Xbox and PlayStation games together.</p>
+              <p>Discover games that fit the way you play. Browse by genre and manage your Steam, Xbox, PlayStation, Nintendo Switch and Nintendo Switch 2 libraries for personalized recommendations.</p>
               <div className="landing-actions">
                 <a className="home-button home-button-primary" href="/recommendations">
                   Explore games <ArrowRight size={17} aria-hidden="true" />
                 </a>
                 <a className="home-button home-button-secondary" href="/library">
-                  Open your library <ArrowUpRight size={17} aria-hidden="true" />
+                  Open My Library <ArrowUpRight size={17} aria-hidden="true" />
                 </a>
               </div>
             </div>

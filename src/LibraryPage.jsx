@@ -4,9 +4,23 @@ import { api } from './api.js'
 import ConsoleCatalog from './components/ConsoleCatalog.jsx'
 import { GameCover } from './components/GameCover.jsx'
 import { consolePlatforms, platformNames } from '../shared/platforms.js'
+import NintendoLibraryPage from './NintendoLibraryPage.jsx'
+import { catalogById } from './gameCatalog.js'
+import { usePlayerPreferences } from './preferences.js'
+import { useNintendoLibrary } from './useNintendoLibrary.js'
 
 const pageSize = 24
-const views = [{ id: 'all', name: 'All games' }, ...Object.entries(platformNames).map(([id, name]) => ({ id, name }))]
+// Local Nintendo data is deliberately kept separate from the server-backed catalog.
+// Distinct tab IDs avoid accidentally posting Nintendo IDs to the console API.
+const localNintendoTabs = [
+  { id: 'local-nintendo', name: 'Nintendo Switch', platform: 'nintendo' },
+  { id: 'local-switch2', name: 'Nintendo Switch 2', platform: 'switch2' },
+]
+const views = [
+  { id: 'all', name: 'All account games' },
+  ...Object.entries(platformNames).map(([id, name]) => ({ id, name })),
+  ...localNintendoTabs,
+]
 
 export default function LibraryPage({ onImported } = {}) {
   const [access, setAccess] = useState('loading')
@@ -27,7 +41,13 @@ export default function LibraryPage({ onImported } = {}) {
   const resultsHeading = useRef(null)
   const focusResults = useRef(false)
   const busy = importing || Boolean(mutation)
-  const counts = useMemo(() => Object.fromEntries(views.map(({ id }) => [id, id === 'all' ? games.length : games.filter((game) => game.platform === id).length])), [games])
+  const { user } = usePlayerPreferences()
+  const { entries } = useNintendoLibrary(user)
+  const nintendoPlatform = localNintendoTabs.find((tab) => tab.id === view)?.platform
+  const counts = useMemo(() => Object.fromEntries(views.map(({ id, platform }) => [id,
+    platform ? entries.filter((entry) => catalogById.get(entry.gameId)?.platforms.includes(platform)).length
+      : id === 'all' ? games.length : games.filter((game) => game.platform === id).length,
+  ])), [games, entries])
   const ownedIds = useMemo(() => new Set(games.map((game) => game.id)), [games])
   const viewGames = useMemo(() => games.filter((game) => view === 'all' || game.platform === view), [games, view])
   const genres = useMemo(() => [...new Set(viewGames.flatMap((game) => game.genres ?? []))].sort(), [viewGames])
@@ -73,6 +93,7 @@ export default function LibraryPage({ onImported } = {}) {
 
   function chooseView(nextView) {
     setView(nextView)
+    if (localNintendoTabs.some((tab) => tab.id === nextView)) setCatalogPlatform(null)
     setSearch('')
     setGenre('')
     setVisibleCount(pageSize)
@@ -152,11 +173,12 @@ export default function LibraryPage({ onImported } = {}) {
 
   return (
     <div className="gamefinder-home steam-library-page">
-      <main className="home-shell steam-library-main general-library-main" aria-labelledby="library-title">
+      <div className="home-shell steam-library-main general-library-main" style={nintendoPlatform ? { paddingBottom: 0 } : undefined}>
         <header className="steam-library-heading library-heading">
           <span className="library-eyebrow"><Library size={16} aria-hidden="true" /> YOUR COLLECTION</span>
-          <h1 id="library-title">Your library</h1>
-          <p>All your games. One place. Bring Steam, Xbox and PlayStation together.</p>
+          <h1 id="library-title">My Library</h1>
+          <p>Manage your Steam, Xbox, PlayStation, Nintendo Switch and Nintendo Switch 2 games.</p>
+          <p>Nintendo games are saved in this browser; account games are saved on the server.</p>
         </header>
 
         <div className="library-tabs" role="tablist" aria-label="Library platform">
@@ -168,72 +190,79 @@ export default function LibraryPage({ onImported } = {}) {
           ))}
         </div>
 
-        <section className="library-sources" aria-label="Add games to your library">
-          <SteamImportPanel access={access} steam={steam} count={counts.steam} importing={importing} disabled={busy}
-            error={access === 'error' ? error : steamError} onImport={importLibrary} onReload={reloadLibrary} />
-          <div className="console-source-options">
-            {Object.entries(consolePlatforms).map(([id, platform]) => (
-              <div className="console-source-card" data-platform={id} key={id}>
-                <span className="library-platform-icon"><Gamepad2 size={24} aria-hidden="true" /></span>
-                <div><h2>{platform.name} games</h2><p>Find the games you own and add them to your library. No console sign-in needed.</p></div>
-                <button id={`browse-${id}`} className="home-button home-button-secondary" type="button" aria-expanded={catalogPlatform === id}
-                  disabled={mutation === 'adding'}
-                  aria-controls={catalogPlatform === id ? 'console-catalog' : undefined} onClick={() => setCatalogPlatform(id)}>
-                  <Plus size={16} aria-hidden="true" /> Add {platform.name} games
-                </button>
-              </div>
-            ))}
-          </div>
+        {!nintendoPlatform && <main aria-labelledby="library-title">
+          <section className="library-sources" aria-label="Add games to your library">
+            <SteamImportPanel access={access} steam={steam} count={counts.steam} importing={importing} disabled={busy}
+              error={access === 'error' ? error : steamError} onImport={importLibrary} onReload={reloadLibrary} />
+            <div className="console-source-options">
+              {Object.entries(consolePlatforms).map(([id, platform]) => (
+                <div className="console-source-card" data-platform={id} key={id}>
+                  <span className="library-platform-icon"><Gamepad2 size={24} aria-hidden="true" /></span>
+                  <div><h2>{platform.name} games</h2><p>Find the games you own and add them to your library. No console sign-in needed.</p></div>
+                  <button id={`browse-${id}`} className="home-button home-button-secondary" type="button" aria-expanded={catalogPlatform === id}
+                    disabled={mutation === 'adding'}
+                    aria-controls={catalogPlatform === id ? 'console-catalog' : undefined} onClick={() => setCatalogPlatform(id)}>
+                    <Plus size={16} aria-hidden="true" /> Add {platform.name} games
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {catalogPlatform && <ConsoleCatalog key={catalogPlatform} platform={catalogPlatform} ownedIds={ownedIds} canAdd={access === 'ready'} busy={busy}
+            onAdd={(ids) => addGames(catalogPlatform, ids)} onClose={() => {
+              setCatalogPlatform(null)
+              document.getElementById(`browse-${catalogPlatform}`)?.focus()
+            }} />}
+
+          <div className="library-feedback" aria-live="polite">{notice && <p className="library-success">{notice}</p>}</div>
+          {error && access !== 'error' && <p className="steam-library-error" role="alert">{error}</p>}
+
+          <section id="library-collection" className="library-collection" role="tabpanel" aria-labelledby={`library-tab-${view}`}>
+            <div className="library-collection-heading">
+              <div><h2 ref={resultsHeading} tabIndex={-1}>{view === 'all' ? 'All your account games' : `${platformNames[view]} library`}</h2>
+                <p>{access === 'ready' ? `${filteredGames.length} ${filteredGames.length === 1 ? 'game' : 'games'}${search || genre ? ' matching your filters' : ' in your collection'}` : 'Your saved games will appear here.'}</p></div>
+            </div>
+            {access === 'ready' && viewGames.length > 0 && <div className="library-tools">
+              <label className="discovery-search"><Search size={18} aria-hidden="true" /><span className="sr-only">Search your library</span>
+                <input type="search" value={search} placeholder="Search your library…" onChange={(event) => { setSearch(event.target.value); setVisibleCount(pageSize) }} />
+                {search && <button type="button" aria-label="Clear library search" onClick={() => setSearch('')}><X size={16} aria-hidden="true" /></button>}
+              </label>
+              {genres.length > 0 && <label className="library-select"><span className="sr-only">Filter your library by genre</span>
+                <select value={genre} onChange={(event) => { setGenre(event.target.value); setVisibleCount(pageSize) }}><option value="">All genres</option>{genres.map((name) => <option key={name}>{name}</option>)}</select>
+              </label>}
+              <label className="library-select"><span className="sr-only">Sort your library</span><select value={sort} onChange={(event) => setSort(event.target.value)}>
+                <option value="name">Title: A–Z</option><option value="-name">Title: Z–A</option><option value="recent">Recently added</option>
+              </select></label>
+            </div>}
+
+            {access === 'loading' ? <p className="library-empty" role="status"><LoaderCircle className="steam-import-spinner" size={22} aria-hidden="true" /> Loading your library…</p>
+              : access === 'guest' ? <div className="library-empty"><Library size={32} aria-hidden="true" /><h3>Make room for all your games</h3><p>Log in or create a GameFinder account to save games across platforms.</p><a className="home-button home-button-primary" href="/login">Log in <ArrowRight size={16} aria-hidden="true" /></a></div>
+                : access === 'error' ? <p className="library-empty">Your library could not be loaded. Use “Try again” above to reconnect.</p>
+                  : filteredGames.length === 0 ? <div className="library-empty"><Gamepad2 size={32} aria-hidden="true" /><h3>{search || genre ? 'No games match your filters' : view === 'all' ? 'Your collection starts here' : `No ${platformNames[view]} games yet`}</h3>
+                    <p>{search || genre ? 'Try another title or clear your filters.' : view === 'steam' ? 'Connect Steam and import your games using the Steam library import above.' : 'Import Steam games or browse the console catalogs above to add your first games.'}</p>
+                    {(search || genre) && <button className="home-button home-button-secondary" type="button" onClick={() => { setSearch(''); setGenre('') }}>Clear filters</button>}</div>
+                    : <ul className="discovery-grid steam-games library-game-grid">{filteredGames.slice(0, visibleCount).map((game, index) => (
+                      <li className="steam-game library-game" key={game.id}>
+                        <GameCover src={game.imageUrl} eager={index < 4} />
+                        <div className="library-game-info"><span className="library-platform-badge" data-platform={game.platform}>{platformNames[game.platform]}</span>
+                          <h3>{game.title}</h3>{game.genres?.length > 0 && <p>{game.genres.join(' · ')}</p>}
+                          {game.platform === 'steam' ? <span className="library-imported-label">Imported from Steam</span> : <button className="library-remove" type="button" disabled={busy} onClick={() => removeGame(game)} aria-label={`Remove ${game.title} from your ${platformNames[game.platform]} library`}>
+                            {mutation === game.id ? <LoaderCircle className="steam-import-spinner" size={14} aria-hidden="true" /> : <Trash2 size={14} aria-hidden="true" />} Remove
+                          </button>}
+                        </div>
+                      </li>
+                    ))}</ul>}
+            {access === 'ready' && visibleCount < filteredGames.length && <div className="steam-library-more"><button className="home-button home-button-secondary" type="button" onClick={() => setVisibleCount((count) => count + pageSize)}>Show more games <ArrowDown size={16} aria-hidden="true" /></button></div>}
+            {games.some((game) => game.platform !== 'steam') && <p className="catalog-attribution">Console game data and artwork provided by <a href="https://www.igdb.com" target="_blank" rel="noreferrer">IGDB</a>.</p>}
+          </section>
+        </main>}
+      </div>
+      {nintendoPlatform && (
+        <section id="library-collection" role="tabpanel" aria-labelledby={`library-tab-${view}`}>
+          <NintendoLibraryPage key={nintendoPlatform} platform={nintendoPlatform} />
         </section>
-
-        {catalogPlatform && <ConsoleCatalog key={catalogPlatform} platform={catalogPlatform} ownedIds={ownedIds} canAdd={access === 'ready'} busy={busy}
-          onAdd={(ids) => addGames(catalogPlatform, ids)} onClose={() => {
-            setCatalogPlatform(null)
-            document.getElementById(`browse-${catalogPlatform}`)?.focus()
-          }} />}
-
-        <div className="library-feedback" aria-live="polite">{notice && <p className="library-success">{notice}</p>}</div>
-        {error && access !== 'error' && <p className="steam-library-error" role="alert">{error}</p>}
-
-        <section id="library-collection" className="library-collection" role="tabpanel" aria-labelledby={`library-tab-${view}`}>
-          <div className="library-collection-heading">
-            <div><h2 ref={resultsHeading} tabIndex={-1}>{view === 'all' ? 'All your games' : `${platformNames[view]} library`}</h2>
-              <p>{access === 'ready' ? `${filteredGames.length} ${filteredGames.length === 1 ? 'game' : 'games'}${search || genre ? ' matching your filters' : ' in your collection'}` : 'Your saved games will appear here.'}</p></div>
-          </div>
-          {access === 'ready' && viewGames.length > 0 && <div className="library-tools">
-            <label className="discovery-search"><Search size={18} aria-hidden="true" /><span className="sr-only">Search your library</span>
-              <input type="search" value={search} placeholder="Search your library…" onChange={(event) => { setSearch(event.target.value); setVisibleCount(pageSize) }} />
-              {search && <button type="button" aria-label="Clear library search" onClick={() => setSearch('')}><X size={16} aria-hidden="true" /></button>}
-            </label>
-            {genres.length > 0 && <label className="library-select"><span className="sr-only">Filter your library by genre</span>
-              <select value={genre} onChange={(event) => { setGenre(event.target.value); setVisibleCount(pageSize) }}><option value="">All genres</option>{genres.map((name) => <option key={name}>{name}</option>)}</select>
-            </label>}
-            <label className="library-select"><span className="sr-only">Sort your library</span><select value={sort} onChange={(event) => setSort(event.target.value)}>
-              <option value="name">Title: A–Z</option><option value="-name">Title: Z–A</option><option value="recent">Recently added</option>
-            </select></label>
-          </div>}
-
-          {access === 'loading' ? <p className="library-empty" role="status"><LoaderCircle className="steam-import-spinner" size={22} aria-hidden="true" /> Loading your library…</p>
-            : access === 'guest' ? <div className="library-empty"><Library size={32} aria-hidden="true" /><h3>Make room for all your games</h3><p>Log in or create a GameFinder account to save games across platforms.</p><a className="home-button home-button-primary" href="/login">Log in <ArrowRight size={16} aria-hidden="true" /></a></div>
-              : access === 'error' ? <p className="library-empty">Your library could not be loaded. Use “Try again” above to reconnect.</p>
-                : filteredGames.length === 0 ? <div className="library-empty"><Gamepad2 size={32} aria-hidden="true" /><h3>{search || genre ? 'No games match your filters' : view === 'all' ? 'Your collection starts here' : `No ${platformNames[view]} games yet`}</h3>
-                  <p>{search || genre ? 'Try another title or clear your filters.' : view === 'steam' ? 'Connect Steam and import your games using the Steam library import above.' : 'Import Steam games or browse the console catalogs above to add your first games.'}</p>
-                  {(search || genre) && <button className="home-button home-button-secondary" type="button" onClick={() => { setSearch(''); setGenre('') }}>Clear filters</button>}</div>
-                  : <ul className="discovery-grid steam-games library-game-grid">{filteredGames.slice(0, visibleCount).map((game, index) => (
-                    <li className="steam-game library-game" key={game.id}>
-                      <GameCover src={game.imageUrl} eager={index < 4} />
-                      <div className="library-game-info"><span className="library-platform-badge" data-platform={game.platform}>{platformNames[game.platform]}</span>
-                        <h3>{game.title}</h3>{game.genres?.length > 0 && <p>{game.genres.join(' · ')}</p>}
-                        {game.platform === 'steam' ? <span className="library-imported-label">Imported from Steam</span> : <button className="library-remove" type="button" disabled={busy} onClick={() => removeGame(game)} aria-label={`Remove ${game.title} from your ${platformNames[game.platform]} library`}>
-                          {mutation === game.id ? <LoaderCircle className="steam-import-spinner" size={14} aria-hidden="true" /> : <Trash2 size={14} aria-hidden="true" />} Remove
-                        </button>}
-                      </div>
-                    </li>
-                  ))}</ul>}
-          {access === 'ready' && visibleCount < filteredGames.length && <div className="steam-library-more"><button className="home-button home-button-secondary" type="button" onClick={() => setVisibleCount((count) => count + pageSize)}>Show more games <ArrowDown size={16} aria-hidden="true" /></button></div>}
-          {games.some((game) => game.platform !== 'steam') && <p className="catalog-attribution">Console game data and artwork provided by <a href="https://www.igdb.com" target="_blank" rel="noreferrer">IGDB</a>.</p>}
-        </section>
-      </main>
+      )}
     </div>
   )
 }

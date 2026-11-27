@@ -841,7 +841,7 @@
   margin-bottom: clamp(19px, 3vw, 35px);
 }
 
-.steam-library-heading h1, .steam-library-content h2, .steam-import-panel h2 {
+.steam-library-heading h2, .steam-library-content h2, .steam-import-panel h2 {
   margin: 0;
   font-family: "Inter Variable", var(--gf-body);
   font-weight: 550;
@@ -849,7 +849,7 @@
   letter-spacing: -0.046em;
 }
 
-.steam-library-heading h1 {
+.steam-library-heading h2 {
   font-size: clamp(39px, 5vw, 68px);
 }
 
@@ -1438,3 +1438,46 @@
     transform: none;
   }
 }
+
+/* Multiplatform library and discovery. Existing Steam import UI stays intact. */
+.multi-library-page {
+  min-height: 100%;
+  background: radial-gradient(ellipse at 84% 0%, #eee3d4, transparent 60%), var(--gf-paper);
+}
+.multi-library-header { width: var(--gf-page-width); padding-top: clamp(29px, 5vw, 65px); }
+.multi-library-header h1 { margin: 0; font: 550 clamp(39px, 5vw, 68px)/1.08 "Inter Variable", var(--gf-body); letter-spacing: -.046em; }
+.multi-library-header p, .nintendo-heading p { margin: 7px 0 16px; color: var(--gf-muted); line-height: 1.55; }
+.multi-library-page .steam-library-page { min-height: 0; background: transparent; }
+.multi-library-page .steam-library-main { padding-top: 25px; }
+.multi-library-page .steam-library-heading h2, .nintendo-heading h2 { margin: 0; font: 550 clamp(26px, 3vw, 40px)/1.12 "Inter Variable", var(--gf-body); letter-spacing: -.04em; }
+.platform-selector { display: flex; flex-wrap: wrap; gap: 7px; }
+.platform-selector button { border: 1px solid var(--gf-line); background: var(--gf-paper); color: var(--gf-ink); padding: 9px 15px; border-radius: 9px; font-weight: 650; font-size: 14px; cursor: pointer; min-height: 42px; }
+.platform-selector button:hover { border-color: #b58163; background: var(--gf-panel); }
+.platform-selector button[aria-pressed="true"] { color: var(--gf-paper); background: var(--gf-ink); border-color: var(--gf-ink); }
+.nintendo-library { width: var(--gf-page-width); padding-block: 25px 55px; }
+.nintendo-heading .nintendo-storage-note { font-size: 13px; margin-top: 0; }
+.nintendo-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.nintendo-toolbar .discovery-search { flex: 1 1 260px; }
+.nintendo-result-count { color: var(--gf-muted); font-size: 14px; margin: 18px 0 12px; }
+.nintendo-card { min-width: 0; overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--gf-line); border-radius: 12px; background: var(--gf-paper); }
+.nintendo-card-body { display: flex; flex-direction: column; gap: 8px; flex: 1; padding: 13px; }
+.nintendo-card-body h3 { margin: 0; font: 750 clamp(16px, 1.5vw, 21px)/1.18 var(--gf-display); overflow-wrap: anywhere; }
+.nintendo-card-body p { margin: 0; color: var(--gf-muted); font-size: 12px; }
+.nintendo-card-body .home-button { min-height: 40px; white-space: normal; margin-top: auto; padding: 8px; }
+.nintendo-owned { display: flex; gap: 6px; align-items: center; color: #65503b; font-size: 13px; font-weight: 650; }
+.nintendo-hours { display: grid; gap: 5px; font-size: 12px; color: var(--gf-muted); }
+.nintendo-hours input { width: 100%; min-width: 0; color: var(--gf-ink); background: #fff9ef; border: 1px solid var(--gf-line); border-radius: 7px; padding: 8px; }
+.nintendo-remove { color: var(--gf-accent); }
+.nintendo-next { display: flex; justify-content: center; margin-top: 26px; }
+.catalog-cover { position: relative; }
+.catalog-cover-placeholder { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; padding: 12px; color: #fff5e8; background: linear-gradient(135deg, #924631, #392525); text-align: center; }
+.catalog-cover-placeholder span { font: 700 clamp(12px, 1.4vw, 19px)/1.15 var(--gf-display); max-width: 95%; }
+.game-platform-label { font-size: 12px; font-weight: 650; color: var(--gf-accent) !important; }
+@media (max-width: 420px) {
+  .nintendo-grid { grid-template-columns: 1fr; }
+  .nintendo-toolbar .platform-selector { width: 100%; }
+}
+
+/* Store links remain separate from the ownership controls. */
+.nintendo-store-link { display: inline-flex; align-items: center; gap: 5px; color: var(--gf-accent); font-size: 13px; font-weight: 650; width: fit-content; }
+.nintendo-store-link:hover { text-decoration: underline; text-underline-offset: 3px; }
