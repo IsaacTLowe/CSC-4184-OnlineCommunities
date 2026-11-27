@@ -54,8 +54,6 @@ The Vite dev server forwards every `/api` request to it (port 3001). Restart the
 | GET | `/api/steam/library` | Returns the Steam connection status and saved list of imported games |
 | POST | `/api/steam/import` | Imports and saves the owned game list, and updates recommendations using the 30 most-played games |
 
-Console catalogs now use IGDB. Existing saved console games remain available; their older IDs are kept separate from new IGDB selections. The old `RAWG_API_KEY` setting is no longer used.
-
 The Steam profile's "Game details" privacy setting must be Public for the import to see the games.
 
 ## Build
@@ -72,8 +70,13 @@ npm run preview
 
 ## Contribution
 Angel - Fix a couple of bugs and update the color scheme 
+
 Chinmay - created the home page, adjust preferences page and the navbar
+
 Fernando - created the FrontPage and measure to link the front page to the HomePage and Library Page
-Jacob - made the import library branch page
+
+Jacob - made the import library branch page and xbox + playstation imports
+
 Patrick - Fixed buttons that didn't lead anywhere, added an under constructions page 
+
 Isaac - Initial repo/project setup and contact page.
