@@ -1,9 +1,10 @@
 // Tiny fetch wrapper for our backend. Throws with the server's error message.
-export async function api(path, { method = 'GET', body } = {}) {
+export async function api(path, { method = 'GET', body, signal } = {}) {
   const res = await fetch(`/api${path}`, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
+    signal,
   })
   const data = await res.json().catch(() => null)
   // No JSON back means the request never reached our server (usually it isn't running,
